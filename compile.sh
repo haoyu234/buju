@@ -1,1 +1,1 @@
-nim -d:release --passC:"-g -O3" c bench
+nim -d:release --cc:gcc c -r bench
