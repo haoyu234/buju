@@ -18,10 +18,7 @@ proc dump(l: ptr LayoutObj, n: LayoutNodeID, ctx: Context) =
       44 + node.computed[0] * 10,
       44 + ctx.fontSize + node.computed[1] * 10)
 
-  if node.label.len > 0:
-    ctx.fillText(node.label, pos)
-  else:
-    ctx.fillText(fmt"{int(n)}", pos)
+  ctx.fillText(fmt"{int(n)}", pos)
 
 proc recursionDump(l: ptr LayoutObj, n: LayoutNodeID, ctx: Context) =
   var id = block:

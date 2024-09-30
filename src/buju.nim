@@ -63,17 +63,6 @@ proc node*(l: var Layout): LayoutNodeID {.inline.} =
 
   cast[LayoutNodeID](newLen)
 
-proc node*(l: var Layout, label: string): LayoutNodeID {.inline.} =
-  let l = LayoutObj(l).addr
-
-  let len = l.nodes.len
-  let newLen = len +% 1
-
-  l.nodes.setLen(newLen)
-  l.nodes[len].label = label
-
-  cast[LayoutNodeID](newLen)
-
 proc setBoxFlags*(
   l: var Layout, id: LayoutNodeID, boxFlags: int) {.inline.} =
   let l = LayoutObj(l).addr

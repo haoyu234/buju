@@ -18,8 +18,6 @@ type
     margin*: Vec4
     size*: Vec2
 
-    label*: string
-
   LayoutObj* = object
     nodes*: seq[LayoutNodeObj]
 
