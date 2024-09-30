@@ -18,18 +18,6 @@ proc len*(l: var Layout): int {.inline.} =
 proc clear*(l: var Layout) {.inline.} =
   LayoutObj(l).nodes.setLen(0)
 
-proc compute*(l: var Layout) {.inline.} =
-  let l = LayoutObj(l).addr
-
-  let firstChild = l.node(ROOT)
-  l.compute(firstChild)
-
-proc compute*(l: var Layout, n: LayoutNodeID) {.inline.} =
-  let l = LayoutObj(l).addr
-
-  let node = l.node(n)
-  l.compute(node)
-
 proc firstChild*(l: var Layout, n: LayoutNodeID): LayoutNodeID {.inline.} =
   let l = LayoutObj(l).addr
 
@@ -68,8 +56,8 @@ iterator children*(
 proc node*(l: var Layout): LayoutNodeID {.inline.} =
   let l = LayoutObj(l).addr
 
-  let len = uint(l.nodes.len)
-  let newLen = len + 1
+  let len = l.nodes.len
+  let newLen = len +% 1
 
   l.nodes.setLen(newLen)
 
@@ -78,8 +66,8 @@ proc node*(l: var Layout): LayoutNodeID {.inline.} =
 proc node*(l: var Layout, label: string): LayoutNodeID {.inline.} =
   let l = LayoutObj(l).addr
 
-  let len = uint(l.nodes.len)
-  let newLen = len + 1
+  let len = l.nodes.len
+  let newLen = len +% 1
 
   l.nodes.setLen(newLen)
   l.nodes[len].label = label
@@ -136,6 +124,18 @@ proc insertAfter*(
 
   node2.nextSibling = node.nextSibling
   node.nextSibling = n2
+
+proc compute*(l: var Layout) {.inline.} =
+  let l = LayoutObj(l).addr
+
+  let firstChild = l.node(ROOT)
+  l.compute(firstChild)
+
+proc compute*(l: var Layout, n: LayoutNodeID) {.inline.} =
+  let l = LayoutObj(l).addr
+
+  let node = l.node(n)
+  l.compute(node)
 
 proc computed*(
   l: var Layout, id: LayoutNodeID): Vec4 {.inline.} =

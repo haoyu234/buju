@@ -53,29 +53,30 @@ template model(n: ptr LayoutNodeObj): int =
 template direction(n: ptr LayoutNodeObj): int =
   int(n.boxFlags and 0x1)
 
-template layoutFlagsDim(n: ptr LayoutNodeObj, dim: int): int =
+template layoutFlagsDim(
+  n: ptr LayoutNodeObj, dim: static[int]): int =
   int(n.layoutFlags and 0x1F) shr dim
 
 proc firstChild*(
-  l: ptr LayoutObj, n: ptr LayoutNodeObj): ptr LayoutNodeObj {.inline.} =
+  l: ptr LayoutObj, n: ptr LayoutNodeObj): ptr LayoutNodeObj {.inline, raises: [].} =
   let id = n.firstChild
   if id != NIL:
     return l.node(id)
 
 proc lastChild*(
-  l: ptr LayoutObj, n: ptr LayoutNodeObj): ptr LayoutNodeObj {.inline.} =
+  l: ptr LayoutObj, n: ptr LayoutNodeObj): ptr LayoutNodeObj {.inline, raises: [].} =
   let id = n.lastChild
   if id != NIL:
     return l.node(id)
 
 proc nextSibling*(
-  l: ptr LayoutObj, n: ptr LayoutNodeObj): ptr LayoutNodeObj {.inline.} =
+  l: ptr LayoutObj, n: ptr LayoutNodeObj): ptr LayoutNodeObj {.inline, raises: [].} =
   let id = n.nextSibling
   if id != NIL:
     return l.node(id)
 
 iterator children*(
-  l: ptr LayoutObj, n: ptr LayoutNodeObj): ptr LayoutNodeObj =
+  l: ptr LayoutObj, n: ptr LayoutNodeObj): ptr LayoutNodeObj {.inline, raises: [].} =
   var id = n.firstChild
   while id != NIL:
     let node = l.node(id)
@@ -83,22 +84,25 @@ iterator children*(
     yield node
 
 proc calcStackedSize(
-  l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: int): float =
-  let wDim = dim + 2
+  l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]): float {.raises: [].} =
+  const wDim = dim + 2
+
   for child in l.children(n):
     let size = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
     result = result + size
 
 proc calcOverlayedSize(
-  l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: int): float =
-  let wDim = dim + 2
+  l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]): float {.raises: [].} =
+  const wDim = dim + 2
+
   for child in l.children(n):
     let size = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
     result = max(size, result)
 
 proc calcWrappedOverlayedSize(
-  l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: int): float =
-  let wDim = dim + 2
+  l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]): float {.raises: [].} =
+  const wDim = dim + 2
+
   var needSize = 0f
   var needSize2 = 0f
   for child in l.children(n):
@@ -110,8 +114,9 @@ proc calcWrappedOverlayedSize(
   needSize + needSize2
 
 proc calcWrappedStackedSize(
-  l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: int): float =
-  let wDim = dim + 2
+  l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]): float {.raises: [].} =
+  const wDim = dim + 2
+
   var needSize = 0f
   var needSize2 = 0f
   for child in l.children(n):
@@ -121,8 +126,9 @@ proc calcWrappedStackedSize(
     let size = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
     needSize = needSize + size
 
-proc calcSize(l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: int) =
-  let wDim = dim + 2
+proc calcSize(
+  l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]) {.raises: [].} =
+  const wDim = dim + 2
 
   for child in l.children(n):
     l.calcSize(child, dim)
@@ -154,10 +160,12 @@ proc calcSize(l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: int) =
       l.calcOverlayedSize(n, dim)
 
 proc arrangeStacked(
-  l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: int, wrap: bool) =
-  let wDim = dim + 2
+  l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int],
+      wrap: bool) {.raises: [].} =
+  const wDim = dim + 2
+
   let computed = n.computed
-  let space = computed[dim + 2]
+  let space = computed[wDim]
   let maxX2 = computed[dim] + space
   let firstChild = l.firstChild(n)
 
@@ -229,7 +237,7 @@ proc arrangeStacked(
       elif child.size[dim] > 0:
         x1 = x + child.computed[wDim]
       else:
-        x1 = x + max(0, child.computed[wDim] + eater)
+        x1 = x + max(0f, child.computed[wDim] + eater)
 
       let ix0 = x
       let ix1 = if wrap:
@@ -245,15 +253,17 @@ proc arrangeStacked(
 
       child = l.nextSibling(child)
 
-proc arrangeOverlay(l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: int) =
-  let wDim = dim + 2
+proc arrangeOverlay(
+  l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]) {.raises: [].} =
+  const wDim = dim + 2
+
   let offset = n.computed[dim]
   let space = n.computed[wDim]
 
   for child in l.children(n):
     case child.layoutFlagsDim(dim) and LayoutHorizontalFill:
     of LayoutHorizontalFill:
-      child.computed[wDim] = max(0, space - child.computed[dim] - child.margin[wDim])
+      child.computed[wDim] = max(0f, space - child.computed[dim] - child.margin[wDim])
     of LayoutRight:
       child.computed[dim] = child.computed[dim] + space - child.computed[wDim] -
           child.margin[dim] - child.margin[wDim]
@@ -265,13 +275,13 @@ proc arrangeOverlay(l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: int) =
     child.computed[dim] = child.computed[dim] + offset
 
 proc arrangeOverlaySqueezedRange(
-  l: ptr LayoutObj, dim: int,
-  startChild, endChild: ptr LayoutNodeObj, offset, space: float) =
-  let wDim = dim + 2
+  l: ptr LayoutObj, dim: static[int],
+  startChild, endChild: ptr LayoutNodeObj, offset, space: float) {.raises: [].} =
+  const wDim = dim + 2
 
   var child = startChild
   while not child.isNil and child != endChild:
-    let minSize = max(0, space - child.computed[dim] - child.margin[wDim])
+    let minSize = max(0f, space - child.computed[dim] - child.margin[wDim])
     case child.layoutFlagsDim(dim) and LayoutHorizontalFill:
     of LayoutHorizontalFill:
       child.computed[wDim] = minSize
@@ -287,9 +297,10 @@ proc arrangeOverlaySqueezedRange(
     child.computed[dim] = child.computed[dim] + offset
     child = l.nextSibling(child)
 
-proc arrangeWrappedOverlaySqueezed(l: ptr LayoutObj, n: ptr LayoutNodeObj,
-    dim: int): float =
-  let wDim = dim + 2
+proc arrangeWrappedOverlaySqueezed(
+  l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]): float {.raises: [].} =
+  const wDim = dim + 2
+
   var offset = n.computed[dim]
   var needSize = 0f
 
@@ -310,8 +321,9 @@ proc arrangeWrappedOverlaySqueezed(l: ptr LayoutObj, n: ptr LayoutNodeObj,
   l.arrangeOverlaySqueezedRange(dim, startChild, nil, offset, needSize)
   offset + needSize
 
-proc arrange(l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: int) =
-  let wDim = dim + 2
+proc arrange(
+  l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]) {.raises: [].} =
+  const wDim = dim + 2
 
   case n.model:
   of LayoutBoxColumn or LayoutBoxWrap:
@@ -336,7 +348,7 @@ proc arrange(l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: int) =
   for child in l.children(n):
     l.arrange(child, dim)
 
-proc compute*(l: ptr LayoutObj, n: ptr LayoutNodeObj) =
+proc compute*(l: ptr LayoutObj, n: ptr LayoutNodeObj) {.inline, raises: [].} =
   template computeDim(dim) =
     l.calcSize(n, dim)
     l.arrange(n, dim)
