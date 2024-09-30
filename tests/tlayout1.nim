@@ -1,13 +1,9 @@
 import unittest
 
 import buju
-import ./debug
+import ./utils
 
-test "simple_fill":
-  var l: Layout
-  defer:
-    l.dump("dumps/simple_fill.png")
-
+test2 "simple_fill":
   let root = l.node()
   let child = l.node()
 
@@ -29,11 +25,7 @@ test "simple_fill":
   check child_r[2] == 30
   check child_r[3] == 40
 
-test "multiple_uninserted":
-  var l: Layout
-  defer:
-    l.dump("dumps/multiple_uninserted.png")
-
+test2 "multiple_uninserted":
   let root = l.node()
   let child1 = l.node()
   let child2 = l.node()
@@ -46,11 +38,7 @@ test "multiple_uninserted":
   check l.computed(child1) == vec4(0, 0, 0, 0)
   check l.computed(child2) == vec4(0, 0, 0, 0)
 
-test "column_even_fill":
-  var l: Layout
-  defer:
-    l.dump("dumps/column_even_fill.png")
-
+test2 "column_even_fill":
   let root = l.node()
   let child1 = l.node()
   let child2 = l.node()
@@ -72,11 +60,7 @@ test "column_even_fill":
   check l.computed(child2) == vec4(0, 20, 50, 20)
   check l.computed(child3) == vec4(0, 40, 50, 20)
 
-test "row_even_fill":
-  var l: Layout
-  defer:
-    l.dump("dumps/row_even_fill.png")
-
+test2 "row_even_fill":
   let root = l.node()
   let child1 = l.node()
   let child2 = l.node()
@@ -102,11 +86,7 @@ test "row_even_fill":
   check l.computed(child2) == vec4(30, 1, 30, 1)
   check l.computed(child3) == vec4(60, 2, 30, 1)
 
-test "fixed_and_fill":
-  var l: Layout
-  defer:
-    l.dump("dumps/fixed_and_fill.png")
-
+test2 "fixed_and_fill":
   let root = l.node()
   let fixed1 = l.node()
   let fixed2 = l.node()
@@ -129,11 +109,7 @@ test "fixed_and_fill":
   check l.computed(filler) == vec4(0, 15, 50, 30)
   check l.computed(fixed2) == vec4(0, 45, 50, 15)
 
-test "simple_margins_1":
-  var l: Layout
-  defer:
-    l.dump("dumps/simple_margins_1.png")
-
+test2 "simple_margins_1":
   let root = l.node()
   let child1 = l.node()
   let child2 = l.node()
@@ -159,13 +135,9 @@ test "simple_margins_1":
   check l.computed(child2) == vec4(0, 30, 100, 30)
   check l.computed(child3) == vec4(0, 60, 100, 30)
 
-test "nested_boxes_1":
+test2 "nested_boxes_1":
   const numRows = 5
   const numRowsWithHeight = numRows - 1
-
-  var l: Layout
-  defer:
-    l.dump("dumps/nested_boxes_1.png")
 
   let root = l.node()
   let mainChild = l.node()
@@ -265,12 +237,8 @@ test "nested_boxes_1":
     for i in 0..<50:
       check l.computed(cols5[i]) == vec4(float(10 + i), 40, 1, 10)
 
-test "deep_nest_1":
+test2 "deep_nest_1":
   const numItems = 500
-
-  var l: Layout
-  defer:
-    l.dump("dumps/deep_nest_1.png")
 
   let root = l.node()
 
@@ -285,12 +253,8 @@ test "deep_nest_1":
 
   check l.computed(root) == vec4(0, 0, 77, 99)
 
-test "many_children_1":
+test2 "many_children_1":
   const numItems = 20000
-
-  var l: Layout
-  defer:
-    l.dump("dumps/many_children_1.png")
 
   let root = l.node()
   l.setSize(root, vec2(1, 0))
@@ -310,11 +274,7 @@ test "many_children_1":
 
   check l.computed(root) == vec4(0, 0, 1, numItems)
 
-test "child_align_1":
-  var l: Layout
-  defer:
-    l.dump("dumps/child_align_1.png")
-
+test2 "child_align_1":
   let root = l.node()
   l.setSize(root, vec2(50, 50))
 
@@ -350,11 +310,7 @@ test "child_align_1":
   check l.computed(child8) == vec4(40, 40, 10, 10)
   check l.computed(child9) == vec4(20, 40, 10, 10)
 
-test "child_align_2":
-  var l: Layout
-  defer:
-    l.dump("dumps/child_align_2.png")
-
+test2 "child_align_2":
   let root = l.node()
   l.setSize(root, vec2(50, 50))
 

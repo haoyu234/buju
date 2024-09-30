@@ -5,20 +5,24 @@ import pixie
 import buju
 import buju/core
 
+const scaleXY = 2.5
+const padding = 20
+
 proc dump(l: ptr LayoutObj, n: LayoutNodeID, ctx: Context) =
   let node = l.node(n)
 
   ctx.strokeRect(rect(
-    40 + node.computed[0] * 10,
-    40 + node.computed[1] * 10,
-    node.computed[2] * 10,
-    node.computed[3] * 10))
+    padding + node.computed[0] * scaleXY,
+    padding + node.computed[1] * scaleXY,
+    node.computed[2] * scaleXY,
+    node.computed[3] * scaleXY))
 
-  let pos = vec2(
-      44 + node.computed[0] * 10,
-      44 + ctx.fontSize + node.computed[1] * 10)
+  if n != ROOT:
+    let pos = vec2(
+        4 + padding + node.computed[0] * scaleXY,
+        4 + padding + ctx.fontSize + node.computed[1] * scaleXY)
 
-  ctx.fillText(fmt"{int(n)}", pos)
+    ctx.fillText(fmt"{int(n)}", pos)
 
 proc recursionDump(l: ptr LayoutObj, n: LayoutNodeID, ctx: Context) =
   var id = block:
@@ -44,18 +48,24 @@ proc dump*(l: var Layout, path: string) =
   if root.isNil:
     return
 
-  let w = int(root.computed[2] * 10) + 80
-  let h = int(root.computed[3] * 10) + 80
+  let w = int(root.computed[2] * scaleXY) + padding * 2
+  let h = int(root.computed[3] * scaleXY) + padding * 2
 
   let image = newImage(w, h)
   let ctx = newContext(image)
   ctx.lineWidth = 1
   ctx.fontSize = 14
   ctx.font = "assets/font.ttf"
-  ctx.strokeStyle = "#FF5C00"
-  ctx.fillStyle = "#FF5C00"
+  ctx.strokeStyle.color = parseHtmlColor("#ff461f")
+  ctx.strokeStyle.blendMode = OverwriteBlend
+  ctx.globalAlpha = 1
+  ctx.fillStyle = "#f20c00"
+  ctx.setLineDash(@[6f, 3])
 
   l.dump(id, ctx)
+
+  ctx.strokeStyle.color = parseHtmlColor("#1bd1a5")
+
   l.recursionDump(id, ctx)
 
   image.writeFile(path)

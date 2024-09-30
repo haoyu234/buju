@@ -12,4 +12,8 @@ installExt    = @["nim"]
 
 requires "nim >= 1.6.0"
 requires "vmath >= 2.0.0"
-requires "pixie >= 5.0.7"
+
+
+# For testing only
+
+# requires "pixie >= 5.0.7"

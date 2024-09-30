@@ -1,13 +1,9 @@
 import unittest
 
 import buju
-import ./debug
+import ./utils
 
-test "upstream_issue15":
-  var l: Layout
-  defer:
-    l.dump("dumps/upstream_issue15.png")
-
+test2 "upstream_issue15":
   let root = l.node()
   l.setSize(root, vec2(1, 100))
 

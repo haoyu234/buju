@@ -1,13 +1,9 @@
 import unittest
 
 import buju
-import ./debug
+import ./utils
 
-test "wrap_row_1":
-  var l: Layout
-  defer:
-    l.dump("dumps/wrap_row_1.png")
-
+test2 "wrap_row_1":
   let root = l.node()
   l.setSize(root, vec2(50, 50))
   l.setBoxFlags(root, LayoutBoxRow or LayoutBoxWrap)
@@ -28,11 +24,7 @@ test "wrap_row_1":
     let y = i div 5
     check l.computed(items[i]) == vec4(float(x * 10), float(y * 10), 10, 10)
 
-test "wrap_row_2":
-  var l: Layout
-  defer:
-    l.dump("dumps/wrap_row_2.png")
-
+test2 "wrap_row_2":
   let root = l.node()
   l.setSize(root, vec2(57, 57))
   l.setBoxFlags(root, LayoutBoxRow or LayoutBoxWrap or LayoutBoxStart)
@@ -53,11 +45,7 @@ test "wrap_row_2":
     let y = i div 5
     check l.computed(items[i]) == vec4(float(x * 10), float(y * 10), 10, 10)
 
-test "wrap_row_3":
-  var l: Layout
-  defer:
-    l.dump("dumps/wrap_row_3.png")
-
+test2 "wrap_row_3":
   let root = l.node()
   l.setSize(root, vec2(57, 57))
   l.setBoxFlags(root, LayoutBoxRow or LayoutBoxWrap or LayoutBoxEnd)
@@ -78,11 +66,7 @@ test "wrap_row_3":
     let y = i div 5
     check l.computed(items[i]) == vec4(float(7 + x * 10), float(y * 10), 10, 10)
 
-test "wrap_row_4":
-  var l: Layout
-  defer:
-    l.dump("dumps/wrap_row_4.png")
-
+test2 "wrap_row_4":
   let root = l.node()
   l.setSize(root, vec2(58, 57))
   l.setBoxFlags(root, LayoutBoxRow or LayoutBoxWrap)
@@ -108,11 +92,7 @@ test "wrap_row_4":
     check l.computed(items[i]) == vec4(float(4 + x * 10), float(7 + y * 10),
         10, 10)
 
-test "wrap_row_5":
-  var l: Layout
-  defer:
-    l.dump("dumps/wrap_row_5.png")
-
+test2 "wrap_row_5":
   let root = l.node()
   l.setSize(root, vec2(54, 50))
   l.setBoxFlags(root, LayoutBoxRow or LayoutBoxWrap or LayoutBoxJustify)
@@ -133,11 +113,7 @@ test "wrap_row_5":
     let y = i div 5
     check l.computed(items[i]) == vec4(float(x * 11), float(y * 10), 10, 10)
 
-test "wrap_column_1":
-  var l: Layout
-  defer:
-    l.dump("dumps/wrap_column_1.png")
-
+test2 "wrap_column_1":
   let root = l.node()
   l.setSize(root, vec2(50, 50))
   l.setBoxFlags(root, LayoutBoxColumn or LayoutBoxWrap)
@@ -158,11 +134,7 @@ test "wrap_column_1":
     let y = i mod 5
     check l.computed(items[i]) == vec4(float(x * 10), float(y * 10), 10, 10)
 
-test "wrap_column_2":
-  var l: Layout
-  defer:
-    l.dump("dumps/wrap_column_2.png")
-
+test2 "wrap_column_2":
   let root = l.node()
   l.setSize(root, vec2(57, 57))
   l.setBoxFlags(root, LayoutBoxColumn or LayoutBoxWrap or LayoutBoxStart)
@@ -183,11 +155,7 @@ test "wrap_column_2":
     let y = i mod 5
     check l.computed(items[i]) == vec4(float(x * 10), float(y * 10), 10, 10)
 
-test "wrap_column_3":
-  var l: Layout
-  defer:
-    l.dump("dumps/wrap_column_3.png")
-
+test2 "wrap_column_3":
   let root = l.node()
   l.setSize(root, vec2(57, 57))
   l.setBoxFlags(root, LayoutBoxColumn or LayoutBoxWrap or LayoutBoxEnd)
@@ -208,11 +176,7 @@ test "wrap_column_3":
     let y = i mod 5
     check l.computed(items[i]) == vec4(float(x * 10), float(7 + y * 10), 10, 10)
 
-test "wrap_column_4":
-  var l: Layout
-  defer:
-    l.dump("dumps/wrap_column_4.png")
-
+test2 "wrap_column_4":
   let root = l.node()
   l.setSize(root, vec2(57, 58))
   l.setBoxFlags(root, LayoutBoxColumn or LayoutBoxWrap)
@@ -238,11 +202,7 @@ test "wrap_column_4":
     check l.computed(items[i]) == vec4(float(7 + x * 10), float(4 + y * 10),
         10, 10)
 
-test "anchor_right_margin1":
-  var l: Layout
-  defer:
-    l.dump("dumps/anchor_right_margin1.png")
-
+test2 "anchor_right_margin1":
   let root = l.node()
   l.setSize(root, vec2(100, 100))
 
@@ -257,11 +217,7 @@ test "anchor_right_margin1":
 
   check l.computed(child) == vec4(50, 50, 50, 50)
 
-test "anchor_right_margin2":
-  var l: Layout
-  defer:
-    l.dump("dumps/anchor_right_margin2.png")
-
+test2 "anchor_right_margin2":
   let root = l.node()
   l.setSize(root, vec2(100, 100))
 
