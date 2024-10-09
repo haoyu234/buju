@@ -12,27 +12,27 @@ export LayoutBoxWrap, LayoutBoxStart, LayoutBoxMiddle, LayoutBoxEnd,
 type
   Layout* = distinct LayoutObj
 
-proc len*(l: var Layout): int {.inline.} =
+proc len*(l: Layout): int {.inline.} =
   LayoutObj(l).nodes.len
 
 proc clear*(l: var Layout) {.inline.} =
   LayoutObj(l).nodes.setLen(0)
 
-proc firstChild*(l: var Layout, n: LayoutNodeID): LayoutNodeID {.inline.} =
+proc firstChild*(l: Layout, n: LayoutNodeID): LayoutNodeID {.inline.} =
   let l = LayoutObj(l).addr
 
   let node = l.node(n)
   if not node.isNil:
     result = node.firstChild
 
-proc lastChild*(l: var Layout, n: LayoutNodeID): LayoutNodeID {.inline.} =
+proc lastChild*(l: Layout, n: LayoutNodeID): LayoutNodeID {.inline.} =
   let l = LayoutObj(l).addr
 
   let node = l.node(n)
   if not node.isNil:
     result = node.lastChild
 
-proc nextSibling*(l: var Layout, n: LayoutNodeID): LayoutNodeID {.inline.} =
+proc nextSibling*(l: Layout, n: LayoutNodeID): LayoutNodeID {.inline.} =
   let l = LayoutObj(l).addr
 
   let node = l.node(n)
@@ -40,7 +40,7 @@ proc nextSibling*(l: var Layout, n: LayoutNodeID): LayoutNodeID {.inline.} =
     result = node.nextSibling
 
 iterator children*(
-  l: var Layout, n: LayoutNodeID): LayoutNodeID {.inline.} =
+  l: Layout, n: LayoutNodeID): LayoutNodeID {.inline.} =
   let l = LayoutObj(l).addr
 
   if n != NIL:
@@ -127,7 +127,7 @@ proc compute*(l: var Layout, n: LayoutNodeID) {.inline.} =
   l.compute(node)
 
 proc computed*(
-  l: var Layout, id: LayoutNodeID): Vec4 {.inline.} =
+  l: Layout, id: LayoutNodeID): Vec4 {.inline.} =
   let l = LayoutObj(l).addr
 
   let child = l.node(id)

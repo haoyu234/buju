@@ -36,7 +36,7 @@ proc recursionDump(l: ptr LayoutObj, n: LayoutNodeID, ctx: Context) =
     let node = l.node(id)
     id = node.nextSibling
 
-proc dump*(l: var Layout, path: string) =
+proc dump*(l: Layout, path: string) =
   let l = LayoutObj(l).addr
 
   if l.nodes.len <= 0:
