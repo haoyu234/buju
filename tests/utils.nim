@@ -1,17 +1,17 @@
 import buju
 
-when defined(bujuDumpPng):
+const bujuDumpPng {.booldefine.} = true
+
+when bujuDumpPng:
   import ./dump
 
 template test2*(name: static[string], body: untyped) =
   test name:
     var l {.inject.}: Layout
 
-    when defined(bujuDumpPng):
+    when bujuDumpPng:
       defer:
-        var path = "dumps/"
-        path.add(name)
-        path.add(".png")
+        let path = "dumps/" & name & ".png"
         l.dump(path)
 
     body

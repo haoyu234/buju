@@ -16,4 +16,5 @@ requires "vmath >= 2.0.0"
 
 # For testing only
 
-# requires "pixie >= 5.0.7"
+when declared(taskRequires):
+  taskRequires "test", "pixie >= 5.0.7"
