@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta 11="viewport" content="width=1200, initial-scale=1.0" />
+  <title>buju (布局)</title>
+  <script src="./buju.js"></script>
+  <script>
+    var g_curElem = null;
+    var g_layout = { nodes: [] };
+    var g_parents = {};
+
+    let root = node(g_layout);
+  </script>
+  <style>
+    .node {
+      border: 1px solid black;
+    }
+
+    .foucsNode {
+      box-shadow: 0px 0px 10px #008000;
+    }
+  </style>
+</head>
+
+<body style="position: relative">
+  <div style="max-width: 200px; position: absolute; left: 0; top: 0">
+    <div style="margin-bottom: 1.2em">
+      <button onclick="addNode()">+</button>
+      <button onclick="delNode()">-</button>
+    </div>
+
+    <div style="margin-bottom: 1.2em">
+      <div>
+        <span style="width: 12em">Box</span>
+        <hr />
+      </div>
+      <div>
+        <input onclick="stateChanged(this, true)" class="boxFlags" type="radio" id="g_layoutBoxRow"
+          name="LayoutBoxRowOrColumn" value="0x00" />
+        <span>Free</span>
+      </div>
+      <div>
+        <input onclick="stateChanged(this, true)" class="boxFlags" type="radio" id="g_layoutBoxRow"
+          name="LayoutBoxRowOrColumn" value="0x02" />
+        <span>Row</span>
+      </div>
+      <div>
+        <input onclick="stateChanged(this, true)" class="boxFlags" type="radio" id="g_layoutBoxColumn"
+          name="LayoutBoxRowOrColumn" value="0x03" />
+        <span>Column</span>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 1.2em">
+      <div>
+        <span style="width: 12em">Align</span>
+        <hr />
+      </div>
+      <div>
+        <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutLeft" name="LayoutLeft"
+          value="0x01" />
+        <span>Left</span>
+      </div>
+      <div>
+        <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutTop" name="LayoutTop"
+          value="0x02" />
+        <span>Top</span>
+      </div>
+      <div>
+        <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutRight" name="LayoutRight"
+          value="0x04" />
+        <span>Right</span>
+      </div>
+      <div>
+        <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutBottom" name="LayoutBottom"
+          value="0x08" />
+        <span>Bottom</span>
+      </div>
+      <div>
+        <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutHorizontalFill"
+          name="LayoutHorizontalFill" value="0x05" />
+        <span>HorizontalFill</span>
+      </div>
+      <div>
+        <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutVerticalFill"
+          name="LayoutVerticalFill" value="0x0A" />
+        <span>VerticalFill</span>
+      </div>
+      <div>
+        <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutFill" name="LayoutFill"
+          value="0x0F" />
+        <span>Fill</span>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 1.2em">
+      <div>
+        <span style="width: 12em">Other</span>
+        <hr />
+      </div>
+      <div>
+        <input onchange="stateChanged(this)" class="boxFlags" type="checkbox" id="g_layoutBoxWrap" name="LayoutBoxWrap"
+          value="0x004" />
+        <span>Wrap</span>
+      </div>
+      <div>
+        <input onchange="stateChanged(this)" class="boxFlags" type="checkbox" id="g_layoutBoxStart"
+          name="LayoutBoxStart" value="0x008" />
+        <span>Start</span>
+      </div>
+      <div>
+        <input onchange="stateChanged(this)" class="boxFlags" type="checkbox" id="g_layoutBoxEnd" name="LayoutBoxEnd"
+          value="0x010" />
+        <span>End</span>
+      </div>
+      <div>
+        <input onchange="stateChanged(this)" class="boxFlags" type="checkbox" id="g_layoutBoxJustify"
+          name="LayoutBoxJustify" value="0x01C" />
+        <span>Justify</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="g_nodes" style="position: relative; min-height: 500px; margin-left: 120px"></div>
+
+  <script>
+    function iter(p, f) {
+      var c = firstChild(g_layout, p);
+      while (c && c > 0) {
+        f(c);
+        c = nextSibling(g_layout, c);
+      }
+    }
+
+    function applyStateToInput(state) {
+      var i = 0;
+      var inputs = document.getElementsByClassName("boxFlags");
+      for (var elem of inputs) {
+        if (i >= 3) {
+          let val = state.boxFlags & parseInt(elem.value);
+          elem.checked = val == parseInt(elem.value);
+        } else {
+          let val = state.boxFlags & 0x03;
+          elem.checked = val == parseInt(elem.value);
+        }
+        i = i + 1;
+      }
+
+      inputs = document.getElementsByClassName("layoutFlags");
+      for (var elem of inputs) {
+        let val = state.layoutFlags & elem.value;
+        elem.checked = val == elem.value;
+      }
+    }
+
+    function clearClass(className) {
+      let elems = document.getElementsByClassName(className);
+      if (elems.length) {
+        for (var elem of elems) {
+          elem.classList.remove(className);
+        }
+      }
+    }
+
+    function getElemState(elem) {
+      return {
+        boxFlags: parseInt(elem.dataset.boxFlags || "0"),
+        layoutFlags: parseInt(elem.dataset.layoutFlags || "0"),
+      };
+    }
+
+    function getNode(elem) {
+      return parseInt(elem.dataset.nodeId || "0");
+    }
+
+    function selectElem(e) {
+      clearClass("foucsNode");
+
+      e.classList.add("foucsNode");
+      g_curElem = e;
+
+      let state = getElemState(e);
+      applyStateToInput(state);
+    }
+
+    function selectNode(n) {
+      let e = document.getElementById("node" + n);
+      selectElem(e);
+    }
+
+    function applyStateToNode(state, n) {
+      if (state.width != undefined && state.height != undefined) {
+        setSize(g_layout, n, {
+          arr: [state.width || 50, state.height || 50],
+        });
+      }
+
+      if (
+        state.marginLeft != undefined &&
+        state.marginTop != undefined &&
+        state.marginRight != undefined &&
+        state.marginBottom != undefined
+      ) {
+        setMargin(g_layout, n, {
+          arr: [
+            state.marginLeft || 0,
+            state.marginTop || 0,
+            state.marginRight || 0,
+            state.marginBottom || 0,
+          ],
+        });
+      }
+
+      setBoxFlags(g_layout, n, state.boxFlags || 0x00);
+      setLayoutFlags(g_layout, n, state.layoutFlags || 0x00);
+      return n;
+    }
+
+    function applyNodeToElem(n) {
+      let rect = computed(g_layout, n);
+      let e = document.getElementById("node" + n);
+
+      e.style.setProperty("left", "" + rect.arr[0] + "px");
+      e.style.setProperty("top", "" + rect.arr[1] + "px");
+      e.style.setProperty("width", "" + rect.arr[2] + "px");
+      e.style.setProperty("height", "" + rect.arr[3] + "px");
+      e.style.setProperty("position", "absolute");
+
+      let rn = g_layout.nodes[n - 1];
+
+      e.dataset.boxFlags = rn.boxFlags;
+      e.dataset.layoutFlags = rn.layoutFlags;
+      e.dataset.nodeId = n;
+    }
+
+    function createElem(n) {
+      let rect = computed(g_layout, n);
+      let e = document.createElement("div");
+      e.id = "node" + n;
+      e.classList.add("node");
+      e.onclick = function (ev) {
+        selectElem(ev.target);
+      };
+      e.textContent = n;
+      g_nodes.appendChild(e);
+      applyNodeToElem(n);
+    }
+
+    function computeLayout() {
+      compute(g_layout, root);
+
+      function apply(n) {
+        applyNodeToElem(n);
+        iter(n, apply);
+      }
+
+      apply(root);
+    }
+
+    function stateChanged(e, clearSomeBoxFlags) {
+      var state = getElemState(g_curElem);
+      if (clearSomeBoxFlags) {
+        state.boxFlags = state.boxFlags & ~0x03;
+      }
+
+      if (e.checked) {
+        state[e.className] = state[e.className] | parseInt(e.value);
+      } else {
+        state[e.className] = state[e.className] & ~parseInt(e.value);
+      }
+
+      let n = getNode(g_curElem);
+      applyStateToNode(state, n);
+      computeLayout();
+
+      applyStateToInput(state);
+    }
+
+    let rootState = {
+      boxFlags: 0x02,
+      layoutFlags: 0,
+      width: 400,
+      height: 400,
+      marginLeft: 50,
+      marginTop: 50,
+      marginRight: 50,
+      marginBottom: 50,
+    };
+
+    applyStateToNode(rootState, root);
+
+    compute(g_layout, root);
+
+    createElem(root);
+    selectNode(root);
+
+    iter(root, createElem);
+
+    function addNode() {
+      var boxFlags = 0x02;
+
+      if (g_layoutBoxRow.checked) {
+        boxFlags = 0x03;
+      }
+
+      let defaultState = {
+        boxFlags: boxFlags,
+        layoutFlags: 0,
+        width: 50,
+        height: 50,
+        marginLeft: 5,
+        marginTop: 5,
+        marginRight: 5,
+        marginBottom: 5,
+      };
+
+      let n = node(g_layout);
+      let p = getNode(g_curElem);
+
+      applyStateToNode(defaultState, n);
+      insertChild(g_layout, p, n);
+      createElem(n);
+
+      computeLayout();
+
+      g_parents[n] = p;
+    }
+
+    function delNode() {
+      let id = getNode(g_curElem);
+      let p = g_parents[id];
+
+      if (p) {
+        removeChild(g_layout, p, id);
+        g_curElem.remove();
+
+        computeLayout();
+      }
+    }
+  </script>
+</body>
+
+</html>

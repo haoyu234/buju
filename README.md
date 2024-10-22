@@ -16,34 +16,37 @@ template alignBox(n, flags) =
   l.setLayoutFlags(n, flags)
   l.insertChild(root, n)
 
-# |1|3|2|
-# |4|6|5|
-# |7|9|8|
+# |2|4|3|
+# |5|7|6|
+# |8|10|9|
 
-alignBox(child1, LayoutTop or LayoutLeft)
-alignBox(child2, LayoutTop or LayoutRight)
-alignBox(child3, LayoutTop)
+alignBox(node2, LayoutTop or LayoutLeft)
+alignBox(node3, LayoutTop or LayoutRight)
+alignBox(node4, LayoutTop)
 
-alignBox(child4, LayoutLeft)
-alignBox(child5, LayoutRight)
-alignBox(child6, 0)
+alignBox(node5, LayoutLeft)
+alignBox(node6, LayoutRight)
+alignBox(node7, 0)
 
-alignBox(child7, LayoutBottom or LayoutLeft)
-alignBox(child8, LayoutBottom or LayoutRight)
-alignBox(child9, LayoutBottom)
+alignBox(node8, LayoutBottom or LayoutLeft)
+alignBox(node9, LayoutBottom or LayoutRight)
+alignBox(node10, LayoutBottom)
 
 l.compute(root)
 
-check l.computed(child1) == vec4(0, 0, 10, 10)
-check l.computed(child2) == vec4(40, 0, 10, 10)
-check l.computed(child3) == vec4(20, 0, 10, 10)
+check l.computed(node2) == vec4(0, 0, 10, 10)
+check l.computed(node3) == vec4(40, 0, 10, 10)
+check l.computed(node4) == vec4(20, 0, 10, 10)
 
-check l.computed(child4) == vec4(0, 20, 10, 10)
-check l.computed(child5) == vec4(40, 20, 10, 10)
-check l.computed(child6) == vec4(20, 20, 10, 10)
+check l.computed(node5) == vec4(0, 20, 10, 10)
+check l.computed(node6) == vec4(40, 20, 10, 10)
+check l.computed(node7) == vec4(20, 20, 10, 10)
 
-check l.computed(child7) == vec4(0, 40, 10
-check l.computed(child8) == vec4(40, 40, 10, 10)
-check l.computed(child9) == vec4(20, 40, 10, 10)
+check l.computed(node8) == vec4(0, 40, 10
+check l.computed(node9) == vec4(40, 40, 10, 10)
+check l.computed(node10) == vec4(20, 40, 10, 10)
 
 ```
+
+The editor is in `assets/demo.html`, and here is the output:
+![assets/demo.png](assets/demo.png)
