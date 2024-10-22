@@ -16,7 +16,7 @@ test2 "upstream_issue15":
   l.setMargin(child, vec4(0, 0, 0, 10))
   l.insertChild(row, child)
 
-  l.compute()
+  l.compute(root)
 
   check l.computed(root) == vec4(0, 0, 1, 100)
   check l.computed(row) == vec4(0, 20, 1, 60)

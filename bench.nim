@@ -81,7 +81,7 @@ proc nested(l: var Layout) =
     l.insertChild(mainChild, rows[i])
 
   for i in 0..<5:
-    l.compute()
+    l.compute(root)
 
     check l.computed(mainChild) == vec4(10, 10, 50, 40)
 

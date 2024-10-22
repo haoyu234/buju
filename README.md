@@ -32,7 +32,7 @@ alignBox(child7, LayoutBottom or LayoutLeft)
 alignBox(child8, LayoutBottom or LayoutRight)
 alignBox(child9, LayoutBottom)
 
-l.compute()
+l.compute(root)
 
 check l.computed(child1) == vec4(0, 0, 10, 10)
 check l.computed(child2) == vec4(40, 0, 10, 10)

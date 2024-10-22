@@ -4,7 +4,7 @@ import ./buju/core
 
 export vmath
 
-export LayoutNodeID
+export LayoutNodeID, isNil
 export LayoutBoxWrap, LayoutBoxStart, LayoutBoxMiddle, LayoutBoxEnd,
     LayoutBoxJustify, LayoutBoxRow, LayoutBoxColumn, LayoutLeft, LayoutTop,
     LayoutRight, LayoutBottom, LayoutHorizontalFill, LayoutVerticalFill, LayoutFill
@@ -43,11 +43,11 @@ iterator children*(
   l: Layout, n: LayoutNodeID): LayoutNodeID {.inline.} =
   let l = LayoutObj(l).addr
 
-  if n != NIL:
+  if not n.isNil:
     var node = l.node(n)
     var id = node.firstChild
 
-    while id != NIL:
+    while not id.isNil:
       node = l.node(id)
       yield id
 
@@ -96,7 +96,8 @@ proc insertChild*(
   let l = LayoutObj(l).addr
 
   let parent = l.node(p)
-  if parent.lastChild != NIL:
+
+  if not parent.lastChild.isNil:
     let lastChild = l.lastChild(parent)
     lastChild.nextSibling = c
     parent.lastChild = c
@@ -113,12 +114,6 @@ proc insertAfter*(
 
   node2.nextSibling = node.nextSibling
   node.nextSibling = n2
-
-proc compute*(l: var Layout) {.inline.} =
-  let l = LayoutObj(l).addr
-
-  let firstChild = l.node(ROOT)
-  l.compute(firstChild)
 
 proc compute*(l: var Layout, n: LayoutNodeID) {.inline.} =
   let l = LayoutObj(l).addr

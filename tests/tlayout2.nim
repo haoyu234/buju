@@ -17,7 +17,7 @@ test2 "wrap_row_1":
     l.insertChild(root, node)
     items[i] = node
 
-  l.compute()
+  l.compute(root)
 
   for i in 0..<numItems:
     let x = i mod 5
@@ -38,7 +38,7 @@ test2 "wrap_row_2":
     l.insertChild(root, node)
     items[i] = node
 
-  l.compute()
+  l.compute(root)
 
   for i in 0..<numItems:
     let x = i mod 5
@@ -59,7 +59,7 @@ test2 "wrap_row_3":
     l.insertChild(root, node)
     items[i] = node
 
-  l.compute()
+  l.compute(root)
 
   for i in 0..<numItems:
     let x = i mod 5
@@ -84,7 +84,7 @@ test2 "wrap_row_4":
     l.insertChild(root, node)
     items[i] = node
 
-  l.compute()
+  l.compute(root)
 
   for i in 0..<numItems:
     let x = i mod 5
@@ -106,7 +106,7 @@ test2 "wrap_row_5":
     l.insertChild(root, node)
     items[i] = node
 
-  l.compute()
+  l.compute(root)
 
   for i in 0..<numItems:
     let x = i mod 5
@@ -127,7 +127,7 @@ test2 "wrap_column_1":
     l.insertChild(root, node)
     items[i] = node
 
-  l.compute()
+  l.compute(root)
 
   for i in 0..<numItems:
     let x = i div 5
@@ -148,7 +148,7 @@ test2 "wrap_column_2":
     l.insertChild(root, node)
     items[i] = node
 
-  l.compute()
+  l.compute(root)
 
   for i in 0..<numItems:
     let x = i div 5
@@ -169,7 +169,7 @@ test2 "wrap_column_3":
     l.insertChild(root, node)
     items[i] = node
 
-  l.compute()
+  l.compute(root)
 
   for i in 0..<numItems:
     let x = i div 5
@@ -194,7 +194,7 @@ test2 "wrap_column_4":
     l.insertChild(root, node)
     items[i] = node
 
-  l.compute()
+  l.compute(root)
 
   for i in 0..<numItems:
     let x = i div 5
@@ -213,7 +213,7 @@ test2 "anchor_right_margin1":
 
   l.insertChild(root, child)
 
-  l.compute()
+  l.compute(root)
 
   check l.computed(child) == vec4(50, 50, 50, 50)
 
@@ -228,6 +228,6 @@ test2 "anchor_right_margin2":
 
   l.insertChild(root, child)
 
-  l.compute()
+  l.compute(root)
 
   check l.computed(child) == vec4(40, 40, 50, 50)

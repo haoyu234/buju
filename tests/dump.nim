@@ -17,19 +17,18 @@ proc dump(l: ptr LayoutObj, n: LayoutNodeID, ctx: Context) =
     node.computed[2] * scaleXY,
     node.computed[3] * scaleXY))
 
-  if n != ROOT:
-    let pos = vec2(
-        4 + padding + node.computed[0] * scaleXY,
-        4 + padding + ctx.fontSize + node.computed[1] * scaleXY)
+  let pos = vec2(
+      4 + padding + node.computed[0] * scaleXY,
+      4 + padding + ctx.fontSize + node.computed[1] * scaleXY)
 
-    ctx.fillText(fmt"{int(n)}", pos)
+  ctx.fillText(fmt"{int(n)}", pos)
 
 proc recursionDump(l: ptr LayoutObj, n: LayoutNodeID, ctx: Context) =
   var id = block:
     let node = l.node(n)
     node.firstChild
 
-  while id != NIL:
+  while not id.isNil:
     l.dump(id, ctx)
     l.recursionDump(id, ctx)
 
@@ -42,7 +41,7 @@ proc dump*(l: Layout, path: string) =
   if l.nodes.len <= 0:
     return
 
-  let id = ROOT
+  let id = cast[LayoutNodeID](1)
 
   let root = l.node(id)
   if root.isNil:

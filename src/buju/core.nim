@@ -3,7 +3,6 @@ import vmath
 type
   LayoutNodeID* {.size: 4.} = enum
     NIL
-    ROOT
 
   LayoutNodeObj* = object
     isBreak: bool
@@ -41,6 +40,9 @@ const
   LayoutBoxRow* = 0x002
   LayoutBoxColumn* = 0x003
 
+proc isNil*(id: LayoutNodeID): bool {.inline.} =
+  id == NIL
+
 template node*(
   l: ptr LayoutObj, id: LayoutNodeID): ptr LayoutNodeObj =
   l.nodes[uint(id) - 1].addr
@@ -58,25 +60,25 @@ template layoutFlagsDim(
 proc firstChild*(
   l: ptr LayoutObj, n: ptr LayoutNodeObj): ptr LayoutNodeObj {.inline, raises: [].} =
   let id = n.firstChild
-  if id != NIL:
+  if not id.isNil:
     return l.node(id)
 
 proc lastChild*(
   l: ptr LayoutObj, n: ptr LayoutNodeObj): ptr LayoutNodeObj {.inline, raises: [].} =
   let id = n.lastChild
-  if id != NIL:
+  if not id.isNil:
     return l.node(id)
 
 proc nextSibling*(
   l: ptr LayoutObj, n: ptr LayoutNodeObj): ptr LayoutNodeObj {.inline, raises: [].} =
   let id = n.nextSibling
-  if id != NIL:
+  if not id.isNil:
     return l.node(id)
 
 iterator children*(
   l: ptr LayoutObj, n: ptr LayoutNodeObj): ptr LayoutNodeObj {.inline, raises: [].} =
   var id = n.firstChild
-  while id != NIL:
+  while not id.isNil:
     let node = l.node(id)
     id = node.nextSibling
     yield node

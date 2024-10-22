@@ -10,7 +10,7 @@ test2 "simple_fill":
   l.setSize(root, vec2(30, 40))
   l.setLayoutFlags(child, LayoutFill)
   l.insertChild(root, child)
-  l.compute()
+  l.compute(root)
 
   let root_r = l.computed(root)
   let child_r = l.computed(child)
@@ -32,7 +32,7 @@ test2 "multiple_uninserted":
 
   l.setSize(root, vec2(155, 177))
   l.setSize(child2, vec2(1, 1))
-  l.compute()
+  l.compute(root)
 
   check l.computed(root) == vec4(0, 0, 155, 177)
   check l.computed(child1) == vec4(0, 0, 0, 0)
@@ -53,7 +53,7 @@ test2 "column_even_fill":
   l.insertChild(root, child1)
   l.insertChild(root, child2)
   l.insertChild(root, child3)
-  l.compute()
+  l.compute(root)
 
   check l.computed(root) == vec4(0, 0, 50, 60)
   check l.computed(child1) == vec4(0, 0, 50, 20)
@@ -79,7 +79,7 @@ test2 "row_even_fill":
   l.insertChild(root, child1)
   l.insertChild(root, child2)
   l.insertChild(root, child3)
-  l.compute()
+  l.compute(root)
 
   check l.computed(root) == vec4(0, 0, 90, 3)
   check l.computed(child1) == vec4(0, 0, 30, 1)
@@ -102,7 +102,7 @@ test2 "fixed_and_fill":
   l.insertChild(root, fixed1)
   l.insertChild(root, filler)
   l.insertChild(root, fixed2)
-  l.compute()
+  l.compute(root)
 
   check l.computed(root) == vec4(0, 0, 50, 60)
   check l.computed(fixed1) == vec4(0, 0, 50, 15)
@@ -129,7 +129,7 @@ test2 "simple_margins_1":
   l.insertChild(root, child1)
   l.insertChild(root, child2)
   l.insertChild(root, child3)
-  l.compute()
+  l.compute(root)
 
   check l.computed(child1) == vec4(3, 5, 90, (5 + 10))
   check l.computed(child2) == vec4(0, 30, 100, 30)
@@ -211,7 +211,7 @@ test2 "nested_boxes_1":
     l.insertChild(mainChild, rows[i])
 
   for i in 0..<5:
-    l.compute()
+    l.compute(root)
 
     check l.computed(mainChild) == vec4(10, 10, 50, 40)
 
@@ -249,7 +249,7 @@ test2 "deep_nest_1":
     parent = child
 
   l.setSize(parent, vec2(77, 99))
-  l.compute()
+  l.compute(root)
 
   check l.computed(root) == vec4(0, 0, 77, 99)
 
@@ -260,17 +260,16 @@ test2 "many_children_1":
   l.setSize(root, vec2(1, 0))
   l.setBoxFlags(root, LayoutBoxColumn)
 
-  var prev = l.node()
-  l.setSize(prev, vec2(1, 1))
-  l.insertChild(root, prev)
+  let node1 = l.node()
+  l.setSize(node1, vec2(1, 1))
+  l.insertChild(root, node1)
 
   for i in 0..<(numItems - 1):
-    let item = l.node()
-    l.setSize(item, vec2(1, 1))
-    l.insertAfter(prev, item)
-    prev = item
+    let node2 = l.node()
+    l.setSize(node2, vec2(1, 1))
+    l.insertChild(root, node2)
 
-  l.compute()
+  l.compute(root)
 
   check l.computed(root) == vec4(0, 0, 1, numItems)
 
@@ -296,7 +295,7 @@ test2 "child_align_1":
   alignBox(child8, LayoutBottom or LayoutRight)
   alignBox(child9, LayoutBottom)
 
-  l.compute()
+  l.compute(root)
 
   check l.computed(child1) == vec4(0, 0, 10, 10)
   check l.computed(child2) == vec4(40, 0, 10, 10)
@@ -328,7 +327,7 @@ test2 "child_align_2":
   alignBox(child5, LayoutRight or LayoutVerticalFill)
   alignBox(child6, LayoutVerticalFill)
 
-  l.compute()
+  l.compute(root)
 
   check l.computed(child1) == vec4(0, 0, 50, 10)
   check l.computed(child2) == vec4(0, 20, 50, 10)
