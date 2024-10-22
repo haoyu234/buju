@@ -100,20 +100,52 @@ proc insertChild*(
   if not parent.lastChild.isNil:
     let lastChild = l.lastChild(parent)
     lastChild.nextSibling = c
+
+    let node = l.node(c)
+    node.prevSibling = parent.lastChild
     parent.lastChild = c
   else:
     parent.firstChild = c
     parent.lastChild = c
 
-proc insertAfter*(
-  l: var Layout, n, n2: LayoutNodeID) {.inline.} =
+proc removeChild*(l: var Layout, p, n: LayoutNodeID) {.inline.} =
   let l = LayoutObj(l).addr
 
   let node = l.node(n)
-  let node2 = l.node(n2)
+  let parent = l.node(p)
 
-  node2.nextSibling = node.nextSibling
-  node.nextSibling = n2
+  let
+    prev = node.prevSibling
+    next = node.nextSibling
+
+  if next == prev:
+    reset(parent.lastChild)
+    reset(parent.firstChild)
+
+    if not next.isNil:
+      reset(node.prevSibling)
+      reset(node.nextSibling)
+
+      let sibling = l.node(next)
+      reset(sibling.prevSibling)
+      reset(sibling.nextSibling)
+    return
+
+  if parent.firstChild == n:
+    parent.firstChild = next
+
+  if parent.lastChild == n:
+    parent.lastChild = prev
+
+  if not next.isNil:
+    let sibling = l.node(next)
+    sibling.prevSibling = prev
+    reset(node.nextSibling)
+
+  if not prev.isNil:
+    let sibling = l.node(prev)
+    sibling.nextSibling = next
+    reset(node.prevSibling)
 
 proc compute*(l: var Layout, n: LayoutNodeID) {.inline.} =
   let l = LayoutObj(l).addr

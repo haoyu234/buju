@@ -11,6 +11,7 @@ type
 
     firstChild*: LayoutNodeID
     lastChild*: LayoutNodeID
+    prevSibling*: LayoutNodeID
     nextSibling*: LayoutNodeID
 
     computed*: Vec4
