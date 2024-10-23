@@ -48,5 +48,5 @@ check l.computed(node10) == vec4(20, 40, 10, 10)
 
 ```
 
-The editor is in `assets/demo.html`, and here is the output:
+The [editor](https://htmlpreview.github.io/?https://github.com/haoyu234/buju/blob/main/assets/demo.html) is in `assets/demo.html`, and here is the output:
 ![assets/demo.png](assets/demo.png)
