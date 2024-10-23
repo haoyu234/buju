@@ -61,7 +61,10 @@ proc node*(l: var Layout): LayoutNodeID {.inline.} =
 
   l.nodes.setLen(newLen)
 
-  cast[LayoutNodeID](newLen)
+  result = cast[LayoutNodeID](newLen)
+
+  let node = l.node(result)
+  node.id = result
 
 proc setBoxFlags*(
   l: var Layout, id: LayoutNodeID, boxFlags: int) {.inline.} =

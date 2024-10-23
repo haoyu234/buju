@@ -9,6 +9,7 @@ type
     boxFlags*: uint8
     layoutFlags*: uint8
 
+    id*: LayoutNodeID
     firstChild*: LayoutNodeID
     lastChild*: LayoutNodeID
     prevSibling*: LayoutNodeID
@@ -271,8 +272,8 @@ proc arrangeOverlay(
     of LayoutLeft:
       discard
     else:
-      child.computed[dim] = child.computed[dim] + (space - child.computed[
-          wDim] - child.margin[wDim]) / 2
+      child.computed[dim] = child.computed[dim] + max(0f, (space -
+          child.computed[wDim]) / 2 - child.margin[wDim])
     child.computed[dim] = child.computed[dim] + offset
 
 proc arrangeOverlaySqueezedRange(
@@ -293,8 +294,8 @@ proc arrangeOverlaySqueezedRange(
       child.computed[dim] = space - child.computed[wDim] - child.margin[wDim]
     else:
       child.computed[wDim] = min(child.computed[wDim], minSize)
-      child.computed[dim] = child.computed[dim] + (space - child.computed[
-          wDim] - child.margin[wDim]) / 2
+      child.computed[dim] = child.computed[dim] + max(0f, (space -
+          child.computed[wDim]) / 2 - child.margin[wDim])
     child.computed[dim] = child.computed[dim] + offset
     child = l.nextSibling(child)
 
