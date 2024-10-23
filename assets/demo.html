@@ -7,15 +7,18 @@
   <title>buju (布局)</title>
   <script src="./buju.js"></script>
   <script>
+    let root = 1;
     var g_curElem = null;
     var g_layout = { nodes: [] };
     var g_parents = {};
-
-    let root = node(g_layout);
   </script>
   <style>
     .node {
       border: 1px solid black;
+    }
+
+    .nodeBtn {
+      margin: 1px;
     }
 
     .foucsNode {
@@ -25,111 +28,153 @@
 </head>
 
 <body style="position: relative">
-  <div style="max-width: 200px; position: absolute; left: 0; top: 0">
+  <div style="width: 15em; position: absolute; left: 0; top: 0">
     <div style="margin-bottom: 1.2em">
       <button onclick="addNode()">+</button>
       <button onclick="delNode()">-</button>
+      <span style="margin-left: 4em"></span>
+      <button onclick="exportJson()">export</button>
+      <button onclick="importJson()">import</button>
     </div>
 
-    <div style="margin-bottom: 1.2em">
+    <div style="margin-bottom: 1.2em; width: 14em">
       <div>
-        <span style="width: 12em">Box</span>
+        <span>Size</span>
         <hr />
       </div>
       <div>
-        <input onclick="stateChanged(this, true)" class="boxFlags" type="radio" id="g_layoutBoxRow"
-          name="LayoutBoxRowOrColumn" value="0x00" />
-        <span>Free</span>
+        <label for="g_width">Width</label>
+        <input onchange="sizeChanged()" class="size" type="number" id="g_width" name="width" style="width: 3em" />
       </div>
       <div>
-        <input onclick="stateChanged(this, true)" class="boxFlags" type="radio" id="g_layoutBoxRow"
-          name="LayoutBoxRowOrColumn" value="0x02" />
-        <span>Row</span>
+        <label for="g_height">Height</label>
+        <input onchange="sizeChanged()" class="size" type="number" id="g_height" name="height" style="width: 3em" />
       </div>
       <div>
-        <input onclick="stateChanged(this, true)" class="boxFlags" type="radio" id="g_layoutBoxColumn"
-          name="LayoutBoxRowOrColumn" value="0x03" />
-        <span>Column</span>
+        <label for="g_marginLeft">MarginLeft</label>
+        <input onchange="sizeChanged()" class="size" type="number" id="g_marginLeft" name="marginLeft"
+          style="width: 3em" />
+      </div>
+      <div>
+        <label for="g_marginTop">MarginTop</label>
+        <input onchange="sizeChanged()" class="size" type="number" id="g_marginTop" name="marginTop"
+          style="width: 3em" />
+      </div>
+      <div>
+        <label for="g_marginRight">MarginRight</label>
+        <input onchange="sizeChanged()" class="size" type="number" id="g_marginRight" name="marginRight"
+          style="width: 3em" />
+      </div>
+      <div>
+        <label for="g_marginBottom">MarginBottom</label>
+        <input onchange="sizeChanged()" class="size" type="number" id="g_marginBottom" name="marginBottom"
+          style="width: 3em" />
       </div>
     </div>
 
-    <div style="margin-bottom: 1.2em">
-      <div>
-        <span style="width: 12em">Align</span>
-        <hr />
+    <div>
+      <div style="margin-bottom: 1.2em; width: 6em; display: inline-block">
+        <div>
+          <span>Box</span>
+          <hr />
+        </div>
+        <div>
+          <input onclick="stateChanged(this, true)" class="boxFlags" type="radio" id="g_layoutBoxFree"
+            name="LayoutBoxRowOrColumn" value="0x00" />
+          <label for="g_layoutBoxFree">Free</label>
+        </div>
+        <div>
+          <input onclick="stateChanged(this, true)" class="boxFlags" type="radio" id="g_layoutBoxRow"
+            name="LayoutBoxRowOrColumn" value="0x02" />
+          <label for="g_layoutBoxRow">Row</label>
+        </div>
+        <div>
+          <input onclick="stateChanged(this, true)" class="boxFlags" type="radio" id="g_layoutBoxColumn"
+            name="LayoutBoxRowOrColumn" value="0x03" />
+          <label for="g_layoutBoxColumn">Column</label>
+        </div>
+        <div>
+          <input onchange="stateChanged(this)" class="boxFlags" type="checkbox" id="g_layoutBoxWrap"
+            name="LayoutBoxWrap" value="0x004" />
+          <label for="g_layoutBoxWrap">Wrap</label>
+        </div>
+        <div>
+          <input onchange="stateChanged(this)" class="boxFlags" type="checkbox" id="g_layoutBoxStart"
+            name="LayoutBoxStart" value="0x008" />
+          <label for="g_layoutBoxStart">Start</label>
+        </div>
+        <div>
+          <input onchange="stateChanged(this)" class="boxFlags" type="checkbox" id="g_layoutBoxEnd" name="LayoutBoxEnd"
+            value="0x010" />
+          <label for="g_layoutBoxEnd">End</label>
+        </div>
+        <div>
+          <input onchange="stateChanged(this)" class="boxFlags" type="checkbox" id="g_layoutBoxJustify"
+            name="LayoutBoxJustify" value="0x01C" />
+          <label for="g_layoutBoxJustify">Justify</label>
+        </div>
       </div>
-      <div>
-        <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutLeft" name="LayoutLeft"
-          value="0x01" />
-        <span>Left</span>
-      </div>
-      <div>
-        <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutTop" name="LayoutTop"
-          value="0x02" />
-        <span>Top</span>
-      </div>
-      <div>
-        <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutRight" name="LayoutRight"
-          value="0x04" />
-        <span>Right</span>
-      </div>
-      <div>
-        <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutBottom" name="LayoutBottom"
-          value="0x08" />
-        <span>Bottom</span>
-      </div>
-      <div>
-        <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutHorizontalFill"
-          name="LayoutHorizontalFill" value="0x05" />
-        <span>HorizontalFill</span>
-      </div>
-      <div>
-        <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutVerticalFill"
-          name="LayoutVerticalFill" value="0x0A" />
-        <span>VerticalFill</span>
-      </div>
-      <div>
-        <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutFill" name="LayoutFill"
-          value="0x0F" />
-        <span>Fill</span>
+
+      <div style="margin-bottom: 1.2em; width: 8em; display: inline-block">
+        <div>
+          <span>Align</span>
+          <hr />
+        </div>
+        <div>
+          <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutLeft" name="LayoutLeft"
+            value="0x01" />
+          <label for="g_layoutLeft">Left</label>
+        </div>
+        <div>
+          <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutTop" name="LayoutTop"
+            value="0x02" />
+          <label for="g_layoutTop">Top</label>
+        </div>
+        <div>
+          <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutRight" name="LayoutRight"
+            value="0x04" />
+          <label for="g_layoutRight">Right</label>
+        </div>
+        <div>
+          <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutBottom"
+            name="LayoutBottom" value="0x08" />
+          <label for="g_layoutBottom">Bottom</label>
+        </div>
+        <div>
+          <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutHorizontalFill"
+            name="LayoutHorizontalFill" value="0x05" />
+          <label for="g_layoutHorizontalFill">HorizontalFill</label>
+        </div>
+        <div>
+          <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutVerticalFill"
+            name="LayoutVerticalFill" value="0x0A" />
+          <label for="g_layoutVerticalFill">VerticalFill</label>
+        </div>
+        <div>
+          <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutFill" name="LayoutFill"
+            value="0x0F" />
+          <label for="g_layoutFill">Fill</label>
+        </div>
       </div>
     </div>
 
-    <div style="margin-bottom: 1.2em">
-      <div>
-        <span style="width: 12em">Other</span>
-        <hr />
-      </div>
-      <div>
-        <input onchange="stateChanged(this)" class="boxFlags" type="checkbox" id="g_layoutBoxWrap" name="LayoutBoxWrap"
-          value="0x004" />
-        <span>Wrap</span>
-      </div>
-      <div>
-        <input onchange="stateChanged(this)" class="boxFlags" type="checkbox" id="g_layoutBoxStart"
-          name="LayoutBoxStart" value="0x008" />
-        <span>Start</span>
-      </div>
-      <div>
-        <input onchange="stateChanged(this)" class="boxFlags" type="checkbox" id="g_layoutBoxEnd" name="LayoutBoxEnd"
-          value="0x010" />
-        <span>End</span>
-      </div>
-      <div>
-        <input onchange="stateChanged(this)" class="boxFlags" type="checkbox" id="g_layoutBoxJustify"
-          name="LayoutBoxJustify" value="0x01C" />
-        <span>Justify</span>
-      </div>
+    <div>
+      <ul id="g_nodeBtns" style="margin: 0px; padding: 0px"></ul>
     </div>
   </div>
 
-  <div id="g_nodes" style="position: relative; min-height: 500px; margin-left: 120px"></div>
+  <div id="g_nodes" style="
+        position: relative;
+        min-height: 500px;
+        margin-left: 16em;
+        border: 1px dotted gray;
+      "></div>
 
   <script>
     function iter(p, f) {
       var c = firstChild(g_layout, p);
       while (c && c > 0) {
-        f(c);
+        f(c, p);
         c = nextSibling(g_layout, c);
       }
     }
@@ -137,7 +182,7 @@
     function applyStateToInput(state) {
       var i = 0;
       var inputs = document.getElementsByClassName("boxFlags");
-      for (var elem of inputs) {
+      for (let elem of inputs) {
         if (i >= 3) {
           let val = state.boxFlags & parseInt(elem.value);
           elem.checked = val == parseInt(elem.value);
@@ -149,9 +194,14 @@
       }
 
       inputs = document.getElementsByClassName("layoutFlags");
-      for (var elem of inputs) {
+      for (let elem of inputs) {
         let val = state.layoutFlags & elem.value;
         elem.checked = val == elem.value;
+      }
+
+      inputs = document.getElementsByClassName("size");
+      for (let elem of inputs) {
+        elem.value = state[elem.name];
       }
     }
 
@@ -164,10 +214,20 @@
       }
     }
 
+    function getElemByNode(n) {
+      return document.getElementById("g_node" + n);
+    }
+
     function getElemState(elem) {
       return {
         boxFlags: parseInt(elem.dataset.boxFlags || "0"),
         layoutFlags: parseInt(elem.dataset.layoutFlags || "0"),
+        width: parseInt(elem.dataset.width || "0"),
+        height: parseInt(elem.dataset.height || "0"),
+        marginLeft: parseInt(elem.dataset.marginLeft || "0"),
+        marginTop: parseInt(elem.dataset.marginTop || "0"),
+        marginRight: parseInt(elem.dataset.marginRight || "0"),
+        marginBottom: parseInt(elem.dataset.marginBottom || "0"),
       };
     }
 
@@ -186,21 +246,21 @@
     }
 
     function selectNode(n) {
-      let e = document.getElementById("node" + n);
+      let e = getElemByNode(n);
       selectElem(e);
     }
 
     function applyStateToNode(state, n) {
-      if (state.width != undefined && state.height != undefined) {
+      if (state.width != undefined || state.height != undefined) {
         setSize(g_layout, n, {
-          arr: [state.width || 50, state.height || 50],
+          arr: [state.width || 0, state.height || 0],
         });
       }
 
       if (
-        state.marginLeft != undefined &&
-        state.marginTop != undefined &&
-        state.marginRight != undefined &&
+        state.marginLeft != undefined ||
+        state.marginTop != undefined ||
+        state.marginRight != undefined ||
         state.marginBottom != undefined
       ) {
         setMargin(g_layout, n, {
@@ -220,7 +280,7 @@
 
     function applyNodeToElem(n) {
       let rect = computed(g_layout, n);
-      let e = document.getElementById("node" + n);
+      let e = getElemByNode(n);
 
       e.style.setProperty("left", "" + rect.arr[0] + "px");
       e.style.setProperty("top", "" + rect.arr[1] + "px");
@@ -233,12 +293,18 @@
       e.dataset.boxFlags = rn.boxFlags;
       e.dataset.layoutFlags = rn.layoutFlags;
       e.dataset.nodeId = n;
+      e.dataset.width = rn.size.arr[0];
+      e.dataset.height = rn.size.arr[1];
+      e.dataset.marginLeft = rn.margin.arr[0];
+      e.dataset.marginTop = rn.margin.arr[1];
+      e.dataset.marginRight = rn.margin.arr[2];
+      e.dataset.marginBottom = rn.margin.arr[3];
     }
 
     function createElem(n) {
       let rect = computed(g_layout, n);
       let e = document.createElement("div");
-      e.id = "node" + n;
+      e.id = "g_node" + n;
       e.classList.add("node");
       e.onclick = function (ev) {
         selectElem(ev.target);
@@ -246,6 +312,7 @@
       e.textContent = n;
       g_nodes.appendChild(e);
       applyNodeToElem(n);
+      createNodeBtn(n);
     }
 
     function computeLayout() {
@@ -278,35 +345,43 @@
       applyStateToInput(state);
     }
 
-    let rootState = {
-      boxFlags: 0x02,
-      layoutFlags: 0,
-      width: 400,
-      height: 400,
-      marginLeft: 50,
-      marginTop: 50,
-      marginRight: 50,
-      marginBottom: 50,
-    };
+    function sizeChanged() {
+      var state = getElemState(g_curElem);
 
-    applyStateToNode(rootState, root);
-
-    compute(g_layout, root);
-
-    createElem(root);
-    selectNode(root);
-
-    iter(root, createElem);
-
-    function addNode() {
-      var boxFlags = 0x02;
-
-      if (g_layoutBoxRow.checked) {
-        boxFlags = 0x03;
+      let elems = document.getElementsByClassName("size");
+      if (elems.length) {
+        for (var elem of elems) {
+          state[elem.name] = parseInt(elem.value);
+        }
       }
 
+      let n = getNode(g_curElem);
+      applyStateToNode(state, n);
+      computeLayout();
+
+      applyStateToInput(state);
+    }
+
+    function createNodeBtn(n) {
+      let li = document.createElement("li");
+      li.id = "g_nodeBtn" + n;
+      li.style.display = "inline";
+
+      let nodeBtn = document.createElement("button");
+      nodeBtn.textContent = n;
+      nodeBtn.classList.add("nodeBtn");
+      nodeBtn.onclick = function () {
+        selectNode(n);
+      };
+
+      li.appendChild(nodeBtn);
+
+      g_nodeBtns.appendChild(li);
+    }
+
+    function addNode() {
       let defaultState = {
-        boxFlags: boxFlags,
+        boxFlags: 0,
         layoutFlags: 0,
         width: 50,
         height: 50,
@@ -336,9 +411,118 @@
         removeChild(g_layout, p, id);
         g_curElem.remove();
 
+        let nodeBtn = document.getElementById("g_nodeBtn" + id);
+        nodeBtn.remove();
+
+        selectNode(p);
+
         computeLayout();
       }
     }
+
+    function download(file, fileType, fileName) {
+      let blob = new Blob([file], { fileType });
+      let downloadElement = document.createElement("a");
+      let href = window.URL.createObjectURL(blob);
+      downloadElement.href = href;
+      downloadElement.download = fileName;
+      document.body.appendChild(downloadElement);
+      downloadElement.click();
+      document.body.removeChild(downloadElement);
+      window.URL.revokeObjectURL(href);
+    }
+
+    function exportJson() {
+      var nodes = [];
+
+      function apply(n, p) {
+        let e = getElemByNode(n);
+        let state = getElemState(e);
+
+        nodes.push({
+          id: n,
+          parent: p,
+          state: state,
+        });
+
+        iter(n, apply);
+      }
+
+      apply(root, 0);
+
+      let json = JSON.stringify(nodes);
+      download(json, "application/json", "buju.json");
+    }
+
+    function createNodeFromJson(json) {
+      g_curElem = null;
+      g_layout = { nodes: [] };
+      g_parents = {};
+
+      g_nodes.innerHTML = "";
+      g_nodeBtns.innerHTML = "";
+
+      var map = {};
+      for (let item of json) {
+        let n = node(g_layout);
+        map[item.id] = n;
+
+        let p = map[item.parent];
+        if (p) {
+          g_parents[n] = p;
+          insertChild(g_layout, p, n);
+        }
+
+        applyStateToNode(item.state, n);
+      }
+
+      compute(g_layout, 1);
+
+      createElem(1);
+      selectNode(1);
+
+      iter(root, createElem);
+    }
+
+    function importJson(e) {
+      let inputElement = document.createElement("input");
+      inputElement.type = "file";
+      inputElement.style.display = "none";
+      inputElement.accept = "application/json";
+      inputElement.single = true;
+      inputElement.onchange = function () {
+        const file = inputElement.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.readAsText(file);
+          reader.onload = () => {
+            let json = JSON.parse(reader.result);
+            createNodeFromJson(json);
+          };
+        }
+      };
+
+      document.body.appendChild(inputElement);
+      inputElement.click();
+      document.body.removeChild(inputElement);
+    }
+
+    createNodeFromJson([
+      {
+        id: 1,
+        parent: 0,
+        state: {
+          boxFlags: 2,
+          layoutFlags: 0,
+          width: 400,
+          height: 400,
+          marginLeft: 50,
+          marginTop: 50,
+          marginRight: 50,
+          marginBottom: 50,
+        },
+      },
+    ]);
   </script>
 </body>
 
