@@ -8,6 +8,7 @@
   <script src="./buju.js"></script>
   <script>
     let root = 1;
+    var g_scale = 1;
     var g_curElem = null;
     var g_layout = { nodes: [] };
     var g_parents = {};
@@ -30,11 +31,12 @@
 <body style="position: relative">
   <div style="width: 15em; position: absolute; left: 0; top: 0">
     <div style="margin-bottom: 1.2em">
-      <button onclick="addNode()">+</button>
-      <button onclick="delNode()">-</button>
-      <span style="margin-left: 4em"></span>
-      <button onclick="exportJson()">export</button>
       <button onclick="importJson()">import</button>
+      <button onclick="exportJson()">export</button>
+      <span style="margin-left: 1em"></span>
+      <button onclick="scaleChanged(1)">x1</button>
+      <button onclick="scaleChanged(2)">x2</button>
+      <button onclick="scaleChanged(5)">x5</button>
     </div>
 
     <div style="margin-bottom: 1.2em; width: 14em">
@@ -159,6 +161,10 @@
     </div>
 
     <div>
+      <div style="margin-bottom: 1em">
+        <button id="g_addNode">+</button>
+        <button onclick="delNode()">-</button>
+      </div>
       <ul id="g_nodeBtns" style="margin: 0px; padding: 0px"></ul>
     </div>
   </div>
@@ -282,10 +288,10 @@
       let rect = computed(g_layout, n);
       let e = getElemByNode(n);
 
-      e.style.setProperty("left", "" + rect.arr[0] + "px");
-      e.style.setProperty("top", "" + rect.arr[1] + "px");
-      e.style.setProperty("width", "" + rect.arr[2] + "px");
-      e.style.setProperty("height", "" + rect.arr[3] + "px");
+      e.style.setProperty("left", "" + rect.arr[0] * g_scale + "px");
+      e.style.setProperty("top", "" + rect.arr[1] * g_scale + "px");
+      e.style.setProperty("width", "" + rect.arr[2] * g_scale + "px");
+      e.style.setProperty("height", "" + rect.arr[3] * g_scale + "px");
       e.style.setProperty("position", "absolute");
       e.style.setProperty("box-sizing", "border-box");
 
@@ -363,6 +369,11 @@
       applyStateToInput(state);
     }
 
+    function scaleChanged(scale) {
+      g_scale = scale;
+      computeLayout();
+    }
+
     function createNodeBtn(n) {
       let li = document.createElement("li");
       li.id = "g_nodeBtn" + n;
@@ -380,7 +391,7 @@
       g_nodeBtns.appendChild(li);
     }
 
-    function addNode() {
+    g_addNode.onclick = function (ev) {
       let defaultState = {
         boxFlags: 0,
         layoutFlags: 0,
@@ -402,23 +413,35 @@
       computeLayout();
 
       g_parents[n] = p;
-    }
+
+      if (ev.ctrlKey) {
+        selectNode(n);
+      }
+    };
 
     function delNode() {
+      function apply(id) {
+        let p = g_parents[id];
+
+        if (p) {
+          removeChild(g_layout, p, id);
+          let elem = getElemByNode(id);
+          elem.remove();
+
+          let nodeBtn = document.getElementById("g_nodeBtn" + id);
+          nodeBtn.remove();
+
+          iter(id, apply);
+        }
+      }
+
       let id = getNode(g_curElem);
       let p = g_parents[id];
 
-      if (p) {
-        removeChild(g_layout, p, id);
-        g_curElem.remove();
+      apply(id);
+      selectNode(p);
 
-        let nodeBtn = document.getElementById("g_nodeBtn" + id);
-        nodeBtn.remove();
-
-        selectNode(p);
-
-        computeLayout();
-      }
+      computeLayout();
     }
 
     function download(file, fileType, fileName) {
