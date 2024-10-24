@@ -9,7 +9,6 @@ type
     boxFlags*: uint8
     layoutFlags*: uint8
 
-    id*: LayoutNodeID
     firstChild*: LayoutNodeID
     lastChild*: LayoutNodeID
     prevSibling*: LayoutNodeID
@@ -35,9 +34,8 @@ const
   # box
   LayoutBoxWrap* = 0x004
   LayoutBoxStart* = 0x008
-  LayoutBoxMiddle* = 0x000
   LayoutBoxEnd* = 0x010
-  LayoutBoxJustify* = LayoutBoxStart or LayoutBoxMiddle or LayoutBoxEnd
+  LayoutBoxJustify* = LayoutBoxStart or LayoutBoxEnd
 
   LayoutBoxRow* = 0x002
   LayoutBoxColumn* = 0x003
@@ -165,8 +163,8 @@ proc calcSize(
       l.calcOverlayedSize(n, dim)
 
 proc arrangeStacked(
-  l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int],
-      wrap: bool) {.raises: [].} =
+  l: ptr LayoutObj, n: ptr LayoutNodeObj,
+  dim: static[int], wrap: static[bool]) {.raises: [].} =
   const wDim = dim + 2
 
   let computed = n.computed
@@ -196,11 +194,12 @@ proc arrangeStacked(
           inc squeezedCount
         extend = extend + child.computed[wDim]
 
-      if wrap and total > 0 and extend > space:
-        endChild = child
-        child.isBreak = true
-        itemCount = 0
-        break
+      when wrap:
+        if total > 0 and extend > space:
+          endChild = child
+          child.isBreak = true
+          itemCount = 0
+          break
 
       inc total
       used = extend
@@ -229,8 +228,10 @@ proc arrangeStacked(
           extraMargin = extraSpace
         else:
           extraMargin = extraSpace / 2
-    elif not wrap and extraSpace < 0:
-      eater = extraSpace / float(squeezedCount)
+    else:
+      when not wrap:
+        if extraSpace < 0:
+          eater = extraSpace / float(squeezedCount)
 
     var x = computed[dim]
     var x1 = 0f

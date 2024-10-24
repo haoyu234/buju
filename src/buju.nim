@@ -5,7 +5,7 @@ import ./buju/core
 export vmath
 
 export LayoutNodeID, isNil
-export LayoutBoxWrap, LayoutBoxStart, LayoutBoxMiddle, LayoutBoxEnd,
+export LayoutBoxWrap, LayoutBoxStart, LayoutBoxEnd,
     LayoutBoxJustify, LayoutBoxRow, LayoutBoxColumn, LayoutLeft, LayoutTop,
     LayoutRight, LayoutBottom, LayoutHorizontalFill, LayoutVerticalFill, LayoutFill
 
@@ -18,33 +18,33 @@ proc len*(l: Layout): int {.inline.} =
 proc clear*(l: var Layout) {.inline.} =
   LayoutObj(l).nodes.setLen(0)
 
-proc firstChild*(l: Layout, n: LayoutNodeID): LayoutNodeID {.inline.} =
+proc firstChild*(l: Layout, id: LayoutNodeID): LayoutNodeID {.inline.} =
   let l = LayoutObj(l).addr
 
-  let node = l.node(n)
+  let node = l.node(id)
   if not node.isNil:
     result = node.firstChild
 
-proc lastChild*(l: Layout, n: LayoutNodeID): LayoutNodeID {.inline.} =
+proc lastChild*(l: Layout, id: LayoutNodeID): LayoutNodeID {.inline.} =
   let l = LayoutObj(l).addr
 
-  let node = l.node(n)
+  let node = l.node(id)
   if not node.isNil:
     result = node.lastChild
 
-proc nextSibling*(l: Layout, n: LayoutNodeID): LayoutNodeID {.inline.} =
+proc nextSibling*(l: Layout, id: LayoutNodeID): LayoutNodeID {.inline.} =
   let l = LayoutObj(l).addr
 
-  let node = l.node(n)
+  let node = l.node(id)
   if not node.isNil:
     result = node.nextSibling
 
 iterator children*(
-  l: Layout, n: LayoutNodeID): LayoutNodeID {.inline.} =
+  l: Layout, id: LayoutNodeID): LayoutNodeID {.inline.} =
   let l = LayoutObj(l).addr
 
-  if not n.isNil:
-    var node = l.node(n)
+  if not id.isNil:
+    var node = l.node(id)
     var id = node.firstChild
 
     while not id.isNil:
@@ -61,61 +61,58 @@ proc node*(l: var Layout): LayoutNodeID {.inline.} =
 
   l.nodes.setLen(newLen)
 
-  result = cast[LayoutNodeID](newLen)
-
-  let node = l.node(result)
-  node.id = result
+  cast[LayoutNodeID](newLen)
 
 proc setBoxFlags*(
   l: var Layout, id: LayoutNodeID, boxFlags: int) {.inline.} =
   let l = LayoutObj(l).addr
 
-  let child = l.node(id)
-  child.boxFlags = uint8(boxFlags)
+  let node = l.node(id)
+  node.boxFlags = uint8(boxFlags)
 
 proc setLayoutFlags*(
   l: var Layout, id: LayoutNodeID, layoutFlags: int) {.inline.} =
   let l = LayoutObj(l).addr
 
-  let child = l.node(id)
-  child.layoutFlags = uint8(layoutFlags)
+  let node = l.node(id)
+  node.layoutFlags = uint8(layoutFlags)
 
 proc setSize*(
   l: var Layout, id: LayoutNodeID, size: Vec2) {.inline.} =
   let l = LayoutObj(l).addr
 
-  let child = l.node(id)
-  child.size = size
+  let node = l.node(id)
+  node.size = size
 
 proc setMargin*(
   l: var Layout, id: LayoutNodeID, margin: Vec4) {.inline.} =
   let l = LayoutObj(l).addr
 
-  let child = l.node(id)
-  child.margin = margin
+  let node = l.node(id)
+  node.margin = margin
 
 proc insertChild*(
-  l: var Layout, p, c: LayoutNodeID) {.inline.} =
+  l: var Layout, parentId, childId: LayoutNodeID) {.inline.} =
   let l = LayoutObj(l).addr
 
-  let parent = l.node(p)
+  let parent = l.node(parentId)
 
   if not parent.lastChild.isNil:
     let lastChild = l.lastChild(parent)
-    lastChild.nextSibling = c
+    lastChild.nextSibling = childId
 
-    let node = l.node(c)
+    let node = l.node(childId)
     node.prevSibling = parent.lastChild
-    parent.lastChild = c
+    parent.lastChild = childId
   else:
-    parent.firstChild = c
-    parent.lastChild = c
+    parent.firstChild = childId
+    parent.lastChild = childId
 
-proc removeChild*(l: var Layout, p, n: LayoutNodeID) {.inline.} =
+proc removeChild*(l: var Layout, parentId, childId: LayoutNodeID) {.inline.} =
   let l = LayoutObj(l).addr
 
-  let node = l.node(n)
-  let parent = l.node(p)
+  let node = l.node(childId)
+  let parent = l.node(parentId)
 
   let
     prev = node.prevSibling
@@ -134,10 +131,10 @@ proc removeChild*(l: var Layout, p, n: LayoutNodeID) {.inline.} =
       reset(sibling.nextSibling)
     return
 
-  if parent.firstChild == n:
+  if parent.firstChild == childId:
     parent.firstChild = next
 
-  if parent.lastChild == n:
+  if parent.lastChild == childId:
     parent.lastChild = prev
 
   if not next.isNil:
@@ -150,15 +147,15 @@ proc removeChild*(l: var Layout, p, n: LayoutNodeID) {.inline.} =
     sibling.nextSibling = next
     reset(node.prevSibling)
 
-proc compute*(l: var Layout, n: LayoutNodeID) {.inline.} =
+proc compute*(l: var Layout, id: LayoutNodeID) {.inline.} =
   let l = LayoutObj(l).addr
 
-  let node = l.node(n)
+  let node = l.node(id)
   l.compute(node)
 
 proc computed*(
   l: Layout, id: LayoutNodeID): Vec4 {.inline.} =
   let l = LayoutObj(l).addr
 
-  let child = l.node(id)
-  child.computed
+  let node = l.node(id)
+  node.computed
