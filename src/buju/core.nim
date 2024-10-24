@@ -132,6 +132,9 @@ proc calcSize(
   l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]) {.raises: [].} =
   const wDim = dim + 2
 
+  when dim <= 0:
+    n.isBreak = false
+
   for child in l.children(n):
     l.calcSize(child, dim)
 

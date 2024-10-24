@@ -848,6 +848,7 @@ function calcSize__buju_u241(l_p0, n_p1) {
       var Temporary7;
 
   BeforeRet: {
+    n_p1.isBreak = false;
     Label1: {
       var child_536871159 = null;
       var id_536872048 = n_p1.firstChild;
