@@ -1,17 +1,20 @@
 import buju
 
-const bujuDumpPng {.booldefine.} = true
+const bujuDumpJson {.booldefine.} = false
 
-when bujuDumpPng:
-  import ./dump
+when bujuDumpJson:
+  import ./dumpJson
 
 template test2*(name: static[string], body: untyped) =
   test name:
     var l {.inject.}: Layout
 
-    when bujuDumpPng:
+    when bujuDumpJson:
       defer:
-        let path = "dumps/" & name & ".png"
-        l.dump(path)
+        let jsonStr = l.dumpJson(cast[LayoutNodeID](1))
+
+        let path = "dumps/" & name & ".json"
+        writeFile(path, jsonStr)
+
 
     body

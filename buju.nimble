@@ -12,9 +12,3 @@ installExt    = @["nim"]
 
 requires "nim >= 1.6.0"
 requires "vmath >= 2.0.0"
-
-
-# For testing only
-
-when declared(taskRequires):
-  taskRequires "test", "pixie >= 5.0.7"
