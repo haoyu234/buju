@@ -337,6 +337,12 @@ proc arrange(
       l.arrangeStacked(n, 1, true)
       let offset = l.arrangeWrappedOverlaySqueezed(n, 0)
       n.computed[2] = offset - n.computed[0]
+
+      for child in l.children(n):
+        l.arrange(child, 0)
+    else:
+      return
+
   of LayoutBoxRow or LayoutBoxWrap:
     if dim > 0:
       discard l.arrangeWrappedOverlaySqueezed(n, 1)
