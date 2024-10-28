@@ -125,6 +125,7 @@ proc calcWrappedStackedSize(
       needSize = 0
     let size = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
     needSize = needSize + size
+  max(needSize2, needSize)
 
 proc calcSize(
   l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]) {.raises: [].} =
@@ -145,12 +146,12 @@ proc calcSize(
   n.computed[wDim] =
     case n.model:
     of LayoutBoxColumn or LayoutBoxWrap:
-      if dim > 0:
+      when dim > 0:
         l.calcStackedSize(n, 1)
       else:
         l.calcOverlayedSize(n, 0)
     of LayoutBoxRow or LayoutBoxWrap:
-      if dim > 0:
+      when dim > 0:
         l.calcWrappedOverlayedSize(n, 1)
       else:
         l.calcWrappedStackedSize(n, 0)
