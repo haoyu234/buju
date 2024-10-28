@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.1.0"
+version       = "0.2.1"
 author        = "haoyu234"
 description   = "simple layout engine"
 license       = "MIT"
