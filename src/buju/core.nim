@@ -170,8 +170,10 @@ proc arrangeStacked(
 
   let computed = n.computed
   let space = computed[wDim]
-  let maxX2 = computed[dim] + space
   let firstChild = l.firstChild(n)
+
+  when wrap:
+    let maxX2 = computed[dim] + space
 
   var startChild = firstChild
   while not startChild.isNil:
@@ -231,7 +233,7 @@ proc arrangeStacked(
           extraMargin = extraSpace / 2
     else:
       when not wrap:
-        if extraSpace < 0:
+        if extraSpace < 0 and squeezedCount > 0:
           eater = extraSpace / float(squeezedCount)
 
     var x = computed[dim]
@@ -247,7 +249,7 @@ proc arrangeStacked(
         x1 = x + max(0f, child.computed[wDim] + eater)
 
       let ix0 = x
-      let ix1 = if wrap:
+      let ix1 = when wrap:
         min(maxX2 - child.margin[wDim], x1)
       else:
         x1
