@@ -14,6 +14,11 @@
     var g_parents = {};
   </script>
   <style>
+    * {
+      font-family: "Microsoft YaHei", Arial;
+      user-select: none;
+    }
+
     .node {
       border: 1px solid black;
     }
@@ -29,8 +34,9 @@
 </head>
 
 <body style="position: relative">
-  <div style="width: 15em; position: absolute; left: 0; top: 0">
-    <div style="margin-bottom: 1.2em">
+  <div
+    style="width: 16em; position: fixed; left: 0; top: 0; padding: 1em 1em 0px; z-index: 1; background-color: rgba(255, 255, 255, 0.7);">
+    <div style="margin-bottom: 1.2em; width: 16em">
       <button onclick="importJson()">import</button>
       <button onclick="exportJson()">export</button>
       <span style="margin-left: 1em"></span>
@@ -39,7 +45,7 @@
       <button onclick="scaleChanged(5)">x5</button>
     </div>
 
-    <div style="margin-bottom: 1.2em; width: 14em">
+    <div style="margin-bottom: 1.2em; width: 15em">
       <div>
         <span>Size</span>
         <hr />
@@ -75,7 +81,7 @@
     </div>
 
     <div>
-      <div style="margin-bottom: 1.2em; width: 6em; display: inline-block">
+      <div style="margin-bottom: 1.2em; width: 6em; display: inline-grid;">
         <div>
           <span>Box</span>
           <hr />
@@ -117,7 +123,7 @@
         </div>
       </div>
 
-      <div style="margin-bottom: 1.2em; width: 8em; display: inline-block">
+      <div style="margin-bottom: 1.2em; width: 8em; display: inline-grid;">
         <div>
           <span>Align</span>
           <hr />
@@ -165,16 +171,17 @@
         <button id="g_addNode">+</button>
         <button onclick="delNode()">-</button>
       </div>
-      <ul id="g_nodeBtns" style="margin: 0px; padding: 0px"></ul>
+      <ul id="g_nodeBtnLis" style="margin: 0px; padding: 0px"></ul>
     </div>
   </div>
 
-  <div id="g_nodes" style="
-        position: relative;
-        min-height: 500px;
-        margin-left: 16em;
-        border: 1px dotted gray;
-      "></div>
+  <div style="
+    position: relative;
+    margin-top: 1em;
+    margin-left: 18em;
+    ">
+    <div id="g_nodes" style="border: 1px dotted gray;"></div>
+  </div>
 
   <script>
     function iter(p, f) {
@@ -212,7 +219,7 @@
     }
 
     function clearClass(className) {
-      let elems = document.getElementsByClassName(className);
+      let elems = Array.prototype.slice.call(document.getElementsByClassName(className));
       if (elems.length) {
         for (var elem of elems) {
           elem.classList.remove(className);
@@ -241,8 +248,16 @@
       return parseInt(elem.dataset.nodeId || "0");
     }
 
+    function getNodeBtnLiByNode(n) {
+      return document.getElementById("g_nodeBtnLi" + n);
+    }
+
     function selectElem(e) {
       clearClass("foucsNode");
+
+      let n = getNode(e);
+      let nodeBtnLi = getNodeBtnLiByNode(n);
+      nodeBtnLi.children[0].classList.add("foucsNode");
 
       e.classList.add("foucsNode");
       g_curElem = e;
@@ -322,6 +337,15 @@
       createNodeBtn(n);
     }
 
+    function resizeBox() {
+      let rect = computed(g_layout, root);
+      let e = getElemByNode(root);
+      let state = getElemState(e);
+
+      g_nodes.style.setProperty("width", "" + (state.marginLeft + state.marginRight + rect.arr[2]) * g_scale + "px");
+      g_nodes.style.setProperty("height", "" + (state.marginTop + state.marginBottom + rect.arr[3]) * g_scale + "px");
+    }
+
     function computeLayout() {
       compute(g_layout, root);
 
@@ -331,6 +355,8 @@
       }
 
       apply(root);
+
+      resizeBox();
     }
 
     function stateChanged(e, clearSomeBoxFlags) {
@@ -375,9 +401,9 @@
     }
 
     function createNodeBtn(n) {
-      let li = document.createElement("li");
-      li.id = "g_nodeBtn" + n;
-      li.style.display = "inline";
+      let nodeBtnLi = document.createElement("li");
+      nodeBtnLi.id = "g_nodeBtnLi" + n;
+      nodeBtnLi.style.display = "inline";
 
       let nodeBtn = document.createElement("button");
       nodeBtn.textContent = n;
@@ -386,9 +412,8 @@
         selectNode(n);
       };
 
-      li.appendChild(nodeBtn);
-
-      g_nodeBtns.appendChild(li);
+      nodeBtnLi.appendChild(nodeBtn);
+      g_nodeBtnLis.appendChild(nodeBtnLi);
     }
 
     g_addNode.onclick = function (ev) {
@@ -428,14 +453,18 @@
           let elem = getElemByNode(id);
           elem.remove();
 
-          let nodeBtn = document.getElementById("g_nodeBtn" + id);
-          nodeBtn.remove();
+          let nodeBtnLi = getNodeBtnLiByNode(id);
+          nodeBtnLi.remove();
 
           iter(id, apply);
         }
       }
 
       let id = getNode(g_curElem);
+      if (id == root) {
+        return;
+      }
+
       let p = g_parents[id];
 
       apply(id);
@@ -484,7 +513,7 @@
       g_parents = {};
 
       g_nodes.innerHTML = "";
-      g_nodeBtns.innerHTML = "";
+      g_nodeBtnLis.innerHTML = "";
 
       var map = {};
       for (let item of json) {
@@ -500,15 +529,17 @@
         applyStateToNode(item.state, n);
       }
 
-      compute(g_layout, 1);
+      compute(g_layout, root);
 
       function apply(n) {
         createElem(n);
         iter(n, apply);
       }
 
-      apply(1);
-      selectNode(1);
+      apply(root);
+      selectNode(root);
+
+      resizeBox();
     }
 
     function importJson(e) {
