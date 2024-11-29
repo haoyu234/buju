@@ -23,21 +23,24 @@ proc firstChild*(l: Layout, id: LayoutNodeID): LayoutNodeID {.inline.} =
 
   let node = l.node(id)
   if not node.isNil:
-    result = node.firstChild
+    return node.firstChild
+  return NIL
 
 proc lastChild*(l: Layout, id: LayoutNodeID): LayoutNodeID {.inline.} =
   let l = LayoutObj(l).addr
 
   let node = l.node(id)
   if not node.isNil:
-    result = node.lastChild
+    return node.lastChild
+  return NIL
 
 proc nextSibling*(l: Layout, id: LayoutNodeID): LayoutNodeID {.inline.} =
   let l = LayoutObj(l).addr
 
   let node = l.node(id)
   if not node.isNil:
-    result = node.nextSibling
+    return node.nextSibling
+  return NIL
 
 iterator children*(
   l: Layout, id: LayoutNodeID): LayoutNodeID {.inline.} =
@@ -119,16 +122,16 @@ proc removeChild*(l: var Layout, parentId, childId: LayoutNodeID) {.inline.} =
     next = node.nextSibling
 
   if next == prev:
-    reset(parent.lastChild)
-    reset(parent.firstChild)
+    parent.lastChild = LayoutNodeID.NIL
+    parent.firstChild = LayoutNodeID.NIL
 
     if not next.isNil:
-      reset(node.prevSibling)
-      reset(node.nextSibling)
+      node.prevSibling = LayoutNodeID.NIL
+      node.nextSibling = LayoutNodeID.NIL
 
       let sibling = l.node(next)
-      reset(sibling.prevSibling)
-      reset(sibling.nextSibling)
+      sibling.prevSibling = LayoutNodeID.NIL
+      sibling.nextSibling = LayoutNodeID.NIL
     return
 
   if parent.firstChild == childId:
@@ -140,12 +143,12 @@ proc removeChild*(l: var Layout, parentId, childId: LayoutNodeID) {.inline.} =
   if not next.isNil:
     let sibling = l.node(next)
     sibling.prevSibling = prev
-    reset(node.nextSibling)
+    node.nextSibling = LayoutNodeID.NIL
 
   if not prev.isNil:
     let sibling = l.node(prev)
     sibling.nextSibling = next
-    reset(node.prevSibling)
+    node.prevSibling = LayoutNodeID.NIL
 
 proc compute*(l: var Layout, id: LayoutNodeID) {.inline.} =
   let l = LayoutObj(l).addr

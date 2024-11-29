@@ -18,13 +18,13 @@ proc nested(l: var Layout) =
   l.insertChild(root, mainChild)
   l.setLayoutFlags(mainChild, LayoutFill)
 
-  var rows: array[numRows, LayoutNodeID]
+  var rows = default(array[numRows, LayoutNodeID])
 
   rows[0] = l.node()
   l.setBoxFlags(rows[0], LayoutBoxRow)
   l.setLayoutFlags(rows[0], LayoutFill)
 
-  var cols1: array[5, LayoutNodeID]
+  var cols1 = default(array[5, LayoutNodeID])
   for i in 0..<5:
     let col = l.node()
     l.setLayoutFlags(col, LayoutFill)
@@ -35,7 +35,7 @@ proc nested(l: var Layout) =
   l.setBoxFlags(rows[1], LayoutBoxRow)
   l.setLayoutFlags(rows[1], LayoutVerticalFill)
 
-  var cols2: array[5, LayoutNodeID]
+  var cols2 = default(array[5, LayoutNodeID])
   for i in 0..<5:
     let col = l.node()
     l.setSize(col, vec2(10, 0))
@@ -46,7 +46,7 @@ proc nested(l: var Layout) =
   rows[2] = l.node()
   l.setBoxFlags(rows[2], LayoutBoxRow)
 
-  var cols3: array[2, LayoutNodeID]
+  var cols3 = default(array[2, LayoutNodeID])
   for i in 0..<2:
     let col = l.node()
     let innerSizer = l.node()
@@ -60,7 +60,7 @@ proc nested(l: var Layout) =
   l.setBoxFlags(rows[3], LayoutBoxRow)
   l.setLayoutFlags(rows[3], LayoutHorizontalFill)
 
-  var cols4: array[99, LayoutNodeID]
+  var cols4 = default(array[99, LayoutNodeID])
   for i in 0..<99:
     let col = l.node()
     l.insertChild(rows[3], col)
@@ -70,7 +70,7 @@ proc nested(l: var Layout) =
   l.setBoxFlags(rows[4], LayoutBoxRow)
   l.setLayoutFlags(rows[4], LayoutFill)
 
-  var cols5: array[50, LayoutNodeID]
+  var cols5 = default(array[50, LayoutNodeID])
   for i in 0..<50:
     let col = l.node()
     l.setLayoutFlags(col, LayoutFill)
@@ -110,8 +110,8 @@ proc nested(l: var Layout) =
 proc main =
   let numRun = 1000
 
-  var l: Layout
-  var total: MonoTime
+  var l = default(Layout)
+  var total = default(MonoTime)
 
   for i in 0..<numRun:
     l.clear()
@@ -128,4 +128,7 @@ proc main =
   let us = int64(total.ticks div 1000)
   echo fmt"average time: {float(us) / float(numRun)} usecs"
 
-main()
+try:
+  main()
+except Exception as e:
+  echo "bench error, ", e.msg

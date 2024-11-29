@@ -62,18 +62,21 @@ proc firstChild*(
   let id = n.firstChild
   if not id.isNil:
     return l.node(id)
+  return nil
 
 proc lastChild*(
   l: ptr LayoutObj, n: ptr LayoutNodeObj): ptr LayoutNodeObj {.inline, raises: [].} =
   let id = n.lastChild
   if not id.isNil:
     return l.node(id)
+  return nil
 
 proc nextSibling*(
   l: ptr LayoutObj, n: ptr LayoutNodeObj): ptr LayoutNodeObj {.inline, raises: [].} =
   let id = n.nextSibling
   if not id.isNil:
     return l.node(id)
+  return nil
 
 iterator children*(
   l: ptr LayoutObj, n: ptr LayoutNodeObj): ptr LayoutNodeObj {.inline, raises: [].} =
@@ -87,17 +90,23 @@ proc calcStackedSize(
   l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]): float {.raises: [].} =
   const wDim = dim + 2
 
+  var needSize = 0f
+
   for child in l.children(n):
     let size = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
-    result = result + size
+    needSize = needSize + size
+  needSize
 
 proc calcOverlayedSize(
   l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]): float {.raises: [].} =
   const wDim = dim + 2
 
+  var needSize = 0f
+
   for child in l.children(n):
     let size = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
-    result = max(size, result)
+    needSize = max(size, needSize)
+  needSize
 
 proc calcWrappedOverlayedSize(
   l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]): float {.raises: [].} =
