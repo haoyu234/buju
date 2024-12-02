@@ -5,7 +5,7 @@ buju (布局) is a simple layout engine, based on [layout.h](https://github.com/
 ```nim
 import buju
 
-var l: Layout
+var l = default(Layout)
 
 let root = l.node()
 l.setSize(root, vec2(50, 50))
@@ -42,7 +42,7 @@ check l.computed(node5) == vec4(0, 20, 10, 10)
 check l.computed(node6) == vec4(40, 20, 10, 10)
 check l.computed(node7) == vec4(20, 20, 10, 10)
 
-check l.computed(node8) == vec4(0, 40, 10
+check l.computed(node8) == vec4(0, 40, 10, 10)
 check l.computed(node9) == vec4(40, 40, 10, 10)
 check l.computed(node10) == vec4(20, 40, 10, 10)
 
