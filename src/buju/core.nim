@@ -1,4 +1,5 @@
 import vmath
+import std/strformat
 
 type
   LayoutNodeID* {.size: 4.} = enum ## Node id, avoid using pointers and references
@@ -8,6 +9,9 @@ type
     isBreak: bool         ## whether an item's children have already been wrapped
     boxFlags*: uint8      ## determines how it behaves as a parent.
     layoutFlags*: uint8   ## determines how it behaves as a child inside of a parent item.
+
+    when defined(js):
+      id*: LayoutNodeID
 
     firstChild*: LayoutNodeID
     lastChild*: LayoutNodeID
@@ -42,6 +46,11 @@ const
   # flex-direction, default is free layout.
   LayoutBoxRow* = 0x002    ## left to right
   LayoutBoxColumn* = 0x003 ## top to bottom
+
+proc `$`*(id: LayoutNodeID): string =
+  if id != NIL:
+    return fmt"NODE{int(id)}"
+  return "NIL"
 
 proc isNil*(id: LayoutNodeID): bool {.inline.} =
   id == NIL

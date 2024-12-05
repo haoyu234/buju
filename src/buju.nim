@@ -4,7 +4,7 @@ import ./buju/core
 
 export vmath
 
-export LayoutNodeID, isNil
+export LayoutNodeID, isNil, `$`
 export
   LayoutBoxWrap, LayoutBoxStart, LayoutBoxEnd, LayoutBoxJustify, LayoutBoxRow,
   LayoutBoxColumn, LayoutLeft, LayoutTop, LayoutRight, LayoutBottom,
@@ -85,6 +85,9 @@ proc node*(l: var Layout): LayoutNodeID {.inline.} =
   let newLen = len +% 1
 
   l.nodes.setLen(newLen)
+
+  when defined(js):
+    l.nodes[len].id = cast[LayoutNodeID](newLen)
 
   cast[LayoutNodeID](newLen)
 

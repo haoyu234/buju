@@ -23,7 +23,7 @@ proc recursionDump(l: ptr LayoutObj, id, parent: LayoutNodeID, nodes: var seq[No
   let n = l.node(id)
 
   block:
-    var item: NodeItem
+    var item = default(NodeItem)
     item.id = int(id)
     item.parent = int(parent)
 
