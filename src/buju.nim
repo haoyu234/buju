@@ -1,4 +1,5 @@
 import vmath
+import std/typetraits
 
 import ./buju/core
 
@@ -14,10 +15,16 @@ type
   Layout* = distinct LayoutObj ## Layout context objects. To avoid private method 
                                ## leaks, we use distinct type.
 
+template getAddr(body): auto =
+  when NimMajor > 1:
+    body.addr
+  else:
+    body.unsafeAddr
+
 proc len*(l: Layout): int {.inline.} =
   ## Returns the length of `nodes`.
 
-  LayoutObj(l).nodes.len
+  distinctBase(l).nodes.len
 
 proc clear*(l: var Layout) {.inline.} =
   ## Clears all of the items in a `Layout`. Use this when
@@ -25,13 +32,13 @@ proc clear*(l: var Layout) {.inline.} =
   ## free any memory or perform allocations. It's safe to use the `Layout` again
   ## after calling this.
 
-  LayoutObj(l).nodes.setLen(0)
+  distinctBase(l).nodes.setLen(0)
 
 proc firstChild*(l: Layout, item: LayoutNodeID): LayoutNodeID {.inline.} =
   ## Get the id of first child of an item, if any. Returns `LayoutNodeID.NIL` if there
   ## is no child.
 
-  let l = LayoutObj(l).addr
+  let l = distinctBase(l).getAddr
 
   let node = l.node(item)
   if not node.isNil:
@@ -42,7 +49,7 @@ proc lastChild*(l: Layout, item: LayoutNodeID): LayoutNodeID {.inline.} =
   ## Get the id of last child of an item, if any. Returns `LayoutNodeID.NIL` if there
   ## is no child.
 
-  let l = LayoutObj(l).addr
+  let l = distinctBase(l).getAddr
 
   let node = l.node(item)
   if not node.isNil:
@@ -53,7 +60,7 @@ proc nextSibling*(l: Layout, item: LayoutNodeID): LayoutNodeID {.inline.} =
   ## Get the id of the next sibling of an item, if any. Returns `LayoutNodeID.NIL` if
   ## there is no next sibling.
 
-  let l = LayoutObj(l).addr
+  let l = distinctBase(l).getAddr
 
   let node = l.node(item)
   if not node.isNil:
@@ -63,7 +70,7 @@ proc nextSibling*(l: Layout, item: LayoutNodeID): LayoutNodeID {.inline.} =
 iterator children*(l: Layout, item: LayoutNodeID): LayoutNodeID {.inline.} =
   ## Iterates over all direct children of an item.
 
-  let l = LayoutObj(l).addr
+  let l = distinctBase(l).getAddr
 
   if not item.isNil:
     var node = l.node(item)
@@ -79,7 +86,7 @@ proc node*(l: var Layout): LayoutNodeID {.inline.} =
   ## Create a new item, which can just be thought of as a rectangle. Returns the
   ## id used to identify the item.
 
-  let l = LayoutObj(l).addr
+  let l = distinctBase(l).getAddr
 
   let len = l.nodes.len
   let newLen = len +% 1
@@ -96,7 +103,7 @@ proc setBoxFlags*(l: var Layout, item: LayoutNodeID, boxFlags: int) {.inline.} =
   ## For example, setting `LayoutBoxColumn` will make an item behave as if it were a column,
   ## it will layout its children vertically.
 
-  let l = LayoutObj(l).addr
+  let l = distinctBase(l).getAddr
 
   let node = l.node(item)
   node.boxFlags = uint8(boxFlags)
@@ -107,7 +114,7 @@ proc setLayoutFlags*(l: var Layout, item: LayoutNodeID,
   ## a parent item. For example, setting `LayoutVerticalFill` will make an item try to fill
   ## up all available vertical space inside of its parent.
 
-  let l = LayoutObj(l).addr
+  let l = distinctBase(l).getAddr
 
   let node = l.node(item)
   node.layoutFlags = uint8(layoutFlags)
@@ -116,7 +123,7 @@ proc setSize*(l: var Layout, item: LayoutNodeID, size: Vec2) {.inline.} =
   ## Sets the size of an item. The components of the vector are:
   ## 0: width, 1: height.
 
-  let l = LayoutObj(l).addr
+  let l = distinctBase(l).getAddr
 
   let node = l.node(item)
   node.size = size
@@ -125,7 +132,7 @@ proc setMargin*(l: var Layout, item: LayoutNodeID, margin: Vec4) {.inline.} =
   ## Set the margins on an item. The components of the vector are:
   ## 0: left, 1: top, 2: right, 3: bottom.
 
-  let l = LayoutObj(l).addr
+  let l = distinctBase(l).getAddr
 
   let node = l.node(item)
   node.margin = margin
@@ -136,7 +143,7 @@ proc insertChild*(l: var Layout, parentItem,
   ## item can contain any number of child items. Items inserted into a parent are
   ## put at the end of the ordering, after any existing siblings.
 
-  let l = LayoutObj(l).addr
+  let l = distinctBase(l).getAddr
 
   let parent = l.node(parentItem)
 
@@ -155,7 +162,7 @@ proc removeChild*(l: var Layout, parentItem,
     childItem: LayoutNodeID) {.inline.} =
   ## Removing an item from another, will untie the parent-child relationship between them.
 
-  let l = LayoutObj(l).addr
+  let l = distinctBase(l).getAddr
 
   let node = l.node(childItem)
   let parent = l.node(parentItem)
@@ -213,7 +220,7 @@ proc compute*(l: var Layout, item: LayoutNodeID) {.inline.} =
   ## `compute`. This might be useful if you are doing a resizing animation
   ## on items in a layout without any contents changing.
 
-  let l = LayoutObj(l).addr
+  let l = distinctBase(l).getAddr
 
   let node = l.node(item)
   l.compute(node)
@@ -224,7 +231,7 @@ proc computed*(l: Layout, item: LayoutNodeID): Vec4 {.inline.} =
   ## result will be undefined. The components of the vector are:
   ## 0: x starting position, 1: y starting position, 2: width, 3: height.
 
-  let l = LayoutObj(l).addr
+  let l = distinctBase(l).getAddr
 
   let node = l.node(item)
   node.computed

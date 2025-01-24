@@ -1,4 +1,5 @@
 import unittest
+import std/typetraits
 
 import buju
 import buju/core
@@ -13,7 +14,7 @@ proc check2(l: ptr LayoutObj, n, firstChild, lastChild, prevSibling,
 
 test "insertChild":
   var l: Layout
-  let p = LayoutObj(l).addr
+  let p = distinctBase(l).addr
 
   let root = l.node()
   let node1 = l.node()
@@ -42,7 +43,7 @@ test "insertChild":
 
 test "removeChild":
   var l: Layout
-  let p = LayoutObj(l).addr
+  let p = distinctBase(l).addr
 
   let root = l.node()
   let node1 = l.node()

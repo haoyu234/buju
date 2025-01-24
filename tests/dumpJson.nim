@@ -1,7 +1,14 @@
 import std/json
+import std/typetraits
 
 import buju
 import buju/core
+
+template getAddr(body): auto =
+  when NimMajor > 1:
+    body.addr
+  else:
+    body.unsafeAddr
 
 type
   NodeAttr = object
@@ -46,7 +53,7 @@ proc recursionDump(l: ptr LayoutObj, id, parent: LayoutNodeID, nodes: var seq[No
     childID = child.nextSibling
 
 proc dumpJson*(l: Layout, id: LayoutNodeID): string =
-  let l = LayoutObj(l).addr
+  let l = distinctBase(l).getAddr
 
   var nodes = newSeqOfCap[NodeItem](l.nodes.len)
   l.recursionDump(id, NIL, nodes)
