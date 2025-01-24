@@ -7,6 +7,7 @@ type
 
   LayoutNodeObj* = object ## Layout node type
     isBreak: bool         ## whether an item's children have already been wrapped
+    isSkipXAxis: bool
     boxFlags*: uint8      ## determines how it behaves as a parent.
     layoutFlags*: uint8   ## determines how it behaves as a child inside of a parent item.
 
@@ -24,6 +25,7 @@ type
 
   LayoutObj* = object
     nodes*: seq[LayoutNodeObj]
+    sorted: seq[ptr LayoutNodeObj]
 
 const
   # layout, default is center in both directions, with left/top margin as offset.
@@ -149,55 +151,52 @@ proc calcWrappedStackedSize(
     needSize = needSize + size
   max(needSize2, needSize)
 
-proc calcSize(
-  l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]) {.raises: [].} =
+proc calcSize(l: ptr LayoutObj, dim: static[int]) {.raises: [].} =
   const wDim = dim + 2
 
-  when dim <= 0:
-    n.isBreak = false
+  var idx = l.sorted.len
+  while idx > 0:
+    dec idx, 1
+    let n = l.sorted[idx]
 
-  for child in l.children(n):
-    # NOTE: this is recursive and will run out of stack space if items are nested too deeply.
-    l.calcSize(child, dim)
+    # Set the mutable rect output data to the starting input data
+    n.computed[dim] = n.margin[dim]
 
-  # Set the mutable rect output data to the starting input data
-  n.computed[dim] = n.margin[dim]
+    # If we have an explicit input size, just set our output size (which other
+    # calcXxxSize and arrange procedures will use) to it.
+    if n.size[dim] > 0:
+      n.computed[wDim] = n.size[dim]
+      continue
 
-  # If we have an explicit input size, just set our output size (which other
-  # calcXxxSize and arrange procedures will use) to it.
-  if n.size[dim] > 0:
-    n.computed[wDim] = n.size[dim]
-    return
-
-  # Calculate our size based on children items. Note that we've already
-  # called calcSize on our children at this point.
-  let needSize =
-    case n.model
-    of LayoutBoxColumn or LayoutBoxWrap:
-      # flex model
-      when dim > 0:
-        l.calcStackedSize(n, 1)
+    # Calculate our size based on children items. Note that we've already
+    # called calcSize on our children at this point.
+    let needSize =
+      case n.model
+      of LayoutBoxColumn or LayoutBoxWrap:
+        # flex model
+        when dim > 0:
+          l.calcStackedSize(n, 1)
+        else:
+          l.calcOverlayedSize(n, 0)
+      of LayoutBoxRow or LayoutBoxWrap:
+        # flex model
+        when dim > 0:
+          l.calcWrappedOverlayedSize(n, 1)
+        else:
+          l.calcWrappedStackedSize(n, 0)
+      of LayoutBoxColumn, LayoutBoxRow:
+        # flex model
+        if n.direction() == dim:
+          l.calcStackedSize(n, dim)
+        else:
+          l.calcOverlayedSize(n, dim)
       else:
-        l.calcOverlayedSize(n, 0)
-    of LayoutBoxRow or LayoutBoxWrap:
-      # flex model
-      when dim > 0:
-        l.calcWrappedOverlayedSize(n, 1)
-      else:
-        l.calcWrappedStackedSize(n, 0)
-    of LayoutBoxColumn, LayoutBoxRow:
-      # flex model
-      if n.direction() == dim:
-        l.calcStackedSize(n, dim)
-      else:
+        # layout model
         l.calcOverlayedSize(n, dim)
-    else:
-      # layout model
-      l.calcOverlayedSize(n, dim)
 
-  # Set our output data size. Will be used by parent calcXxxSize procedures,
-  # and by arrange procedures.
-  n.computed[wDim] = needSize
+    # Set our output data size. Will be used by parent calcXxxSize procedures,
+    # and by arrange procedures.
+    n.computed[wDim] = needSize
 
 proc arrangeStacked(
   l: ptr LayoutObj, n: ptr LayoutNodeObj,
@@ -382,8 +381,7 @@ proc arrangeWrappedOverlaySqueezed(
   l.arrangeOverlaySqueezedRange(dim, startChild, nil, offset, needSize)
   offset + needSize
 
-proc arrange(
-  l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]) {.raises: [].} =
+proc arrange(l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]) {.inline, raises: [].} =
   const wDim = dim + 2
 
   case n.model
@@ -393,14 +391,6 @@ proc arrange(
       l.arrangeStacked(n, 1, true)
       let offset = l.arrangeWrappedOverlaySqueezed(n, 0)
       n.computed[2] = offset - n.computed[0]
-
-      # We should recalculate the x-coordinates for all children.
-      # NOTE: this is recursive and will run out of stack space if items are
-      # nested too deeply.
-      for child in l.children(n):
-        l.arrange(child, 0)
-    else:
-      return
   of LayoutBoxRow or LayoutBoxWrap:
     if dim > 0:
       discard l.arrangeWrappedOverlaySqueezed(n, 1)
@@ -411,19 +401,48 @@ proc arrange(
       l.arrangeStacked(n, dim, false)
     else:
       l.arrangeOverlaySqueezedRange(
-        dim, l.firstChild(n), nil, n.computed[dim], n.computed[wDim])
+        dim, l.firstChild(n), nil, n.computed[dim], n.computed[wDim]
+      )
   else:
     l.arrangeOverlay(n, dim)
 
-  # NOTE: this is recursive and will run out of stack space if items are
-  # nested too deeply.
-  for child in l.children(n):
-    l.arrange(child, dim)
+proc arrange(l: ptr LayoutObj, dim: static[int]) {.raises: [].} =
+  for idx in 0 ..< l.sorted.len:
+    let n = l.sorted[idx]
+
+    when dim <= 0:
+      if not n.isSkipXAxis:
+        l.arrange(n, dim)
+    else:
+      l.arrange(n, dim)
+
+      if n.isSkipXAxis:
+        l.arrange(n, 0)
 
 proc compute*(l: ptr LayoutObj, n: ptr LayoutNodeObj) {.inline, raises: [].} =
   template computeDim(dim) =
-    l.calcSize(n, dim)
-    l.arrange(n, dim)
+    l.calcSize(dim)
+    l.arrange(dim)
+
+  n.isSkipXAxis = false
+
+  l.sorted.setLen(0)
+  l.sorted.add(n)
+
+  var idx = 0
+
+  while idx < l.sorted.len:
+    let n = l.sorted[idx]
+    inc idx, 1
+
+    if n.model == int(LayoutBoxColumn or LayoutBoxWrap):
+      n.isSkipXAxis = true
+    n.isBreak = false
+
+    let isSkipXAxis = n.isSkipXAxis
+    for child in l.children(n):
+      child.isSkipXAxis = isSkipXAxis
+      l.sorted.add(child)
 
   computeDim(0)
   computeDim(1)
