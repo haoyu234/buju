@@ -10,6 +10,8 @@ template test2*(name: static[string], body: untyped) =
     var l {.inject.}: Layout
 
     when bujuDumpJson:
+      bind dumpJson
+
       defer:
         let jsonStr = l.dumpJson(cast[LayoutNodeID](1))
 
