@@ -23,6 +23,9 @@ type
     margin*: Vec4
     size*: Vec2
 
+    childOffset: uint32
+    childCount: uint32
+
   LayoutObj* = object
     nodes*: seq[LayoutNodeObj]
     sorted: seq[ptr LayoutNodeObj]
@@ -106,8 +109,8 @@ proc calcStackedSize(
 
   var needSize = 0f
 
-  for child in l.children(n):
-    # width = start margin + calculated width + end margin
+  for idx in n.childOffset ..< n.childOffset + n.childCount:
+    let child = l.sorted[idx]
     let size = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
     needSize = needSize + size
   needSize
@@ -118,7 +121,8 @@ proc calcOverlayedSize(
 
   var needSize = 0f
 
-  for child in l.children(n):
+  for idx in n.childOffset ..< n.childOffset + n.childCount:
+    let child = l.sorted[idx]
     let size = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
     needSize = max(size, needSize)
   needSize
@@ -129,7 +133,9 @@ proc calcWrappedOverlayedSize(
 
   var needSize = 0f
   var needSize2 = 0f
-  for child in l.children(n):
+
+  for idx in n.childOffset ..< n.childOffset + n.childCount:
+    let child = l.sorted[idx]
     if child.isBreak:
       needSize2 = needSize2 + needSize
       needSize = 0
@@ -143,7 +149,9 @@ proc calcWrappedStackedSize(
 
   var needSize = 0f
   var needSize2 = 0f
-  for child in l.children(n):
+
+  for idx in n.childOffset ..< n.childOffset + n.childCount:
+    let child = l.sorted[idx]
     if child.isBreak:
       needSize2 = max(needSize2, needSize)
       needSize = 0
@@ -205,13 +213,14 @@ proc arrangeStacked(
 
   let computed = n.computed
   let space = computed[wDim]
-  let firstChild = l.firstChild(n)
+
+  var arrangeRangeBegin = n.childOffset
+  let arrangeRangeEnd = n.childOffset + n.childCount
 
   when wrap:
     let maxX2 = computed[dim] + space
 
-  var startChild = firstChild
-  while not startChild.isNil:
+  while arrangeRangeBegin != arrangeRangeEnd:
     var used = 0f
 
     # count of fillers
@@ -222,12 +231,13 @@ proc arrangeStacked(
     var total = 0
     var itemCount = 0
 
-    var child = startChild
-    var endChild: ptr LayoutNodeObj = nil
+    var expandRangeEnd = arrangeRangeEnd
 
     # first pass: count items that need to be expanded, and the space that is used
-    while not child.isNil:
-      inc itemCount
+    for idx in arrangeRangeBegin ..< arrangeRangeEnd:
+      let child = l.sorted[idx]
+    
+      inc itemCount, 1
       var extend = used + child.computed[dim] + child.margin[wDim]
 
       if (child.layoutFlagsDim(dim) and LayoutHorizontalFill) == LayoutHorizontalFill:
@@ -240,7 +250,7 @@ proc arrangeStacked(
       when wrap:
         # wrap on end of line
         if total > 0 and extend > space:
-          endChild = child
+          expandRangeEnd = idx
 
           # add marker for subsequent queries
           child.isBreak = true
@@ -249,10 +259,6 @@ proc arrangeStacked(
 
       inc total
       used = extend
-      child = l.nextSibling(child)
-
-    child = startChild
-    startChild = endChild
 
     let extraSpace = space - used
     var filler = 0f
@@ -267,7 +273,7 @@ proc arrangeStacked(
         case n.boxFlags and LayoutBoxJustify
         of LayoutBoxJustify:
           # justify when not wrapping or at least one remaining element
-          if not wrap or (itemCount > 0 or not endChild.isNil):
+          if not wrap or (itemCount > 0 or expandRangeEnd != arrangeRangeEnd):
             spacer = extraSpace / float(total - 1)
         of LayoutBoxStart:
           discard
@@ -285,7 +291,9 @@ proc arrangeStacked(
     var x1 = 0f
 
     # second pass: distribute and rescale
-    while not child.isNil and child != endChild:
+    for idx in arrangeRangeBegin ..< expandRangeEnd:
+      let child = l.sorted[idx]
+    
       x += child.computed[dim] + extraMargin
       if (child.layoutFlagsDim(dim) and LayoutHorizontalFill) == LayoutHorizontalFill:
         # grow
@@ -308,7 +316,7 @@ proc arrangeStacked(
       extraMargin = spacer
       x = x1 + child.margin[wDim]
 
-      child = l.nextSibling(child)
+    arrangeRangeBegin = expandRangeEnd
 
 proc arrangeOverlay(
   l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]) {.raises: [].} =
@@ -317,7 +325,8 @@ proc arrangeOverlay(
   let offset = n.computed[dim]
   let space = n.computed[wDim]
 
-  for child in l.children(n):
+  for idx in n.childOffset ..< n.childOffset + n.childCount:
+    let child = l.sorted[idx]
     case child.layoutFlagsDim(dim) and LayoutHorizontalFill
     of LayoutHorizontalFill:
       child.computed[wDim] = max(0f, space - child.computed[dim] - child.margin[wDim])
@@ -335,11 +344,11 @@ proc arrangeOverlay(
 
 proc arrangeOverlaySqueezedRange(
   l: ptr LayoutObj, dim: static[int],
-  startChild, endChild: ptr LayoutNodeObj, offset, space: float) {.raises: [].} =
+  squeezedRangeBegin, arrangeRangeEnd: uint32, offset, space: float) {.raises: [].} =
   const wDim = dim + 2
 
-  var child = startChild
-  while not child.isNil and child != endChild:
+  for idx in squeezedRangeBegin ..< arrangeRangeEnd:
+    let child = l.sorted[idx]
     let minSize = max(0f, space - child.computed[dim] - child.margin[wDim])
     case child.layoutFlagsDim(dim) and LayoutHorizontalFill
     of LayoutHorizontalFill:
@@ -355,7 +364,6 @@ proc arrangeOverlaySqueezedRange(
         child.computed[dim] +
         max(0f, (space - child.computed[wDim]) / 2 - child.margin[wDim])
     child.computed[dim] = child.computed[dim] + offset
-    child = l.nextSibling(child)
 
 proc arrangeWrappedOverlaySqueezed(
   l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]): float {.raises: [].} =
@@ -364,21 +372,20 @@ proc arrangeWrappedOverlaySqueezed(
   var offset = n.computed[dim]
   var needSize = 0f
 
-  var child = l.firstChild(n)
-  var startChild = child
+  var squeezedRangeBegin = n.childOffset
 
-  while not child.isNil:
+  for idx in n.childOffset ..< n.childOffset + n.childCount:
+    let child = l.sorted[idx]
     if child.isBreak:
-      l.arrangeOverlaySqueezedRange(dim, startChild, child, offset, needSize)
+      l.arrangeOverlaySqueezedRange(dim, squeezedRangeBegin, idx, offset, needSize)
       offset = offset + needSize
-      startChild = child
+      squeezedRangeBegin = idx
       needSize = 0
 
     let childSize = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
     needSize = max(needSize, childSize)
-    child = l.nextSibling(child)
 
-  l.arrangeOverlaySqueezedRange(dim, startChild, nil, offset, needSize)
+  l.arrangeOverlaySqueezedRange(dim, squeezedRangeBegin, n.childOffset + n.childCount, offset, needSize)
   offset + needSize
 
 proc arrange(l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]) {.inline, raises: [].} =
@@ -401,7 +408,7 @@ proc arrange(l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]) {.inline,
       l.arrangeStacked(n, dim, false)
     else:
       l.arrangeOverlaySqueezedRange(
-        dim, l.firstChild(n), nil, n.computed[dim], n.computed[wDim]
+        dim, n.childOffset, n.childOffset + n.childCount, n.computed[dim], n.computed[wDim]
       )
   else:
     l.arrangeOverlay(n, dim)
@@ -420,10 +427,6 @@ proc arrange(l: ptr LayoutObj, dim: static[int]) {.raises: [].} =
         l.arrange(n, 0)
 
 proc compute*(l: ptr LayoutObj, n: ptr LayoutNodeObj) {.inline, raises: [].} =
-  template computeDim(dim) =
-    l.calcSize(dim)
-    l.arrange(dim)
-
   n.isSkipXAxis = false
 
   l.sorted.setLen(0)
@@ -435,14 +438,25 @@ proc compute*(l: ptr LayoutObj, n: ptr LayoutNodeObj) {.inline, raises: [].} =
     let n = l.sorted[idx]
     inc idx, 1
 
+    n.childOffset = uint32(l.sorted.len)
+
     if n.model == int(LayoutBoxColumn or LayoutBoxWrap):
       n.isSkipXAxis = true
     n.isBreak = false
 
+    var count = 0
     let isSkipXAxis = n.isSkipXAxis
+
     for child in l.children(n):
-      child.isSkipXAxis = isSkipXAxis
+      inc count, 1
       l.sorted.add(child)
+      child.isSkipXAxis = isSkipXAxis
+
+    n.childCount = uint32(count)
+
+  template computeDim(dim) =
+    l.calcSize(dim)
+    l.arrange(dim)
 
   computeDim(0)
   computeDim(1)
