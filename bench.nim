@@ -139,7 +139,7 @@ proc nested(l: var Layout) =
       check l.computed(cols5[i]) == vec4(float(10 + i), 40, 1, 10)
 
 proc main =
-  let numRun = 1000
+  let numRun = 100000
 
   var l = default(Layout)
   var total = default(MonoTime)
@@ -157,6 +157,9 @@ proc main =
     total = total + diff
 
   let us = int64(total.ticks div 1000)
+  echo fmt"nim version: {NimVersion}"
+  echo fmt"times: {numRun}"
+  echo fmt"total time: {us} usecs"
   echo fmt"average time: {float(us) / float(numRun)} usecs"
 
 try:
