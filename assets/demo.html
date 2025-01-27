@@ -10,7 +10,7 @@
     let root = 1;
     var g_scale = 1;
     var g_curElem = null;
-    var g_layout = { nodes: [] };
+    var g_layout = { nodes: [], sorted: [] };
     var g_parents = {};
   </script>
   <style>
@@ -509,7 +509,7 @@
 
     function createNodeFromJson(json) {
       g_curElem = null;
-      g_layout = { nodes: [] };
+      g_layout = { nodes: [], sorted: [] };
       g_parents = {};
 
       g_nodes.innerHTML = "";
