@@ -129,37 +129,37 @@
           <hr />
         </div>
         <div>
-          <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutLeft" name="LayoutLeft"
+          <input onchange="stateChanged(this)" class="anchorFlags" type="checkbox" id="g_layoutLeft" name="LayoutLeft"
             value="0x01" />
           <label for="g_layoutLeft">Left</label>
         </div>
         <div>
-          <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutTop" name="LayoutTop"
+          <input onchange="stateChanged(this)" class="anchorFlags" type="checkbox" id="g_layoutTop" name="LayoutTop"
             value="0x02" />
           <label for="g_layoutTop">Top</label>
         </div>
         <div>
-          <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutRight" name="LayoutRight"
+          <input onchange="stateChanged(this)" class="anchorFlags" type="checkbox" id="g_layoutRight" name="LayoutRight"
             value="0x04" />
           <label for="g_layoutRight">Right</label>
         </div>
         <div>
-          <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutBottom"
+          <input onchange="stateChanged(this)" class="anchorFlags" type="checkbox" id="g_layoutBottom"
             name="LayoutBottom" value="0x08" />
           <label for="g_layoutBottom">Bottom</label>
         </div>
         <div>
-          <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutHorizontalFill"
+          <input onchange="stateChanged(this)" class="anchorFlags" type="checkbox" id="g_layoutHorizontalFill"
             name="LayoutHorizontalFill" value="0x05" />
           <label for="g_layoutHorizontalFill">HorizontalFill</label>
         </div>
         <div>
-          <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutVerticalFill"
+          <input onchange="stateChanged(this)" class="anchorFlags" type="checkbox" id="g_layoutVerticalFill"
             name="LayoutVerticalFill" value="0x0A" />
           <label for="g_layoutVerticalFill">VerticalFill</label>
         </div>
         <div>
-          <input onchange="stateChanged(this)" class="layoutFlags" type="checkbox" id="g_layoutFill" name="LayoutFill"
+          <input onchange="stateChanged(this)" class="anchorFlags" type="checkbox" id="g_layoutFill" name="LayoutFill"
             value="0x0F" />
           <label for="g_layoutFill">Fill</label>
         </div>
@@ -206,9 +206,9 @@
         i = i + 1;
       }
 
-      inputs = document.getElementsByClassName("layoutFlags");
+      inputs = document.getElementsByClassName("anchorFlags");
       for (let elem of inputs) {
-        let val = state.layoutFlags & elem.value;
+        let val = state.anchorFlags & elem.value;
         elem.checked = val == elem.value;
       }
 
@@ -234,7 +234,7 @@
     function getElemState(elem) {
       return {
         boxFlags: parseInt(elem.dataset.boxFlags || "0"),
-        layoutFlags: parseInt(elem.dataset.layoutFlags || "0"),
+        anchorFlags: parseInt(elem.dataset.anchorFlags || "0"),
         width: parseInt(elem.dataset.width || "0"),
         height: parseInt(elem.dataset.height || "0"),
         marginLeft: parseInt(elem.dataset.marginLeft || "0"),
@@ -295,7 +295,7 @@
       }
 
       setBoxFlags(g_layout, n, state.boxFlags || 0x00);
-      setLayoutFlags(g_layout, n, state.layoutFlags || 0x00);
+      setLayoutFlags(g_layout, n, (state.anchorFlags || state.layoutFlags) || 0x00);
       return n;
     }
 
@@ -313,7 +313,7 @@
       let rn = g_layout.nodes[n - 1];
 
       e.dataset.boxFlags = rn.boxFlags;
-      e.dataset.layoutFlags = rn.layoutFlags;
+      e.dataset.anchorFlags = rn.anchorFlags;
       e.dataset.nodeId = n;
       e.dataset.width = rn.size.arr[0];
       e.dataset.height = rn.size.arr[1];
@@ -419,7 +419,7 @@
     g_addNode.onclick = function (ev) {
       let defaultState = {
         boxFlags: 0,
-        layoutFlags: 0,
+        anchorFlags: 0,
         width: 50,
         height: 50,
         marginLeft: 5,
@@ -571,7 +571,7 @@
         parent: 0,
         state: {
           boxFlags: 2,
-          layoutFlags: 0,
+          anchorFlags: 0,
           width: 400,
           height: 400,
           marginLeft: 50,

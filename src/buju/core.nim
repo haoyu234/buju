@@ -6,10 +6,11 @@ type
     NIL
 
   LayoutNodeObj* = object ## Layout node type
-    isBreak: bool         ## whether an item's children have already been wrapped
+    isBreak: bool ## whether an node's children have already been wrapped.
     isSkipXAxis: bool
-    boxFlags*: uint8      ## determines how it behaves as a parent.
-    layoutFlags*: uint8   ## determines how it behaves as a child inside of a parent item.
+      ## whether or not to delay the calculation of the X-axis coordinates
+    boxFlags*: uint8 ## determines how it behaves as a parent
+    anchorFlags*: uint8 ## determines how it behaves as a child inside of a parent node
 
     when defined(js):
       id*: LayoutNodeID
@@ -19,7 +20,10 @@ type
     prevSibling*: LayoutNodeID
     nextSibling*: LayoutNodeID
 
-    computed*: Vec4       ## the calculated rectangle of an item.
+    computed*: Vec4
+      ## the calculated rectangle of an node.
+      ## The components of the vector are:
+      ## 0: x starting position, 1: y starting position, 2: width, 3: height.
     margin*: Vec4
     size*: Vec2
 
@@ -28,28 +32,32 @@ type
 
   LayoutObj* = object
     nodes*: seq[LayoutNodeObj]
-    sorted: seq[ptr LayoutNodeObj]
+    sorted: seq[ptr LayoutNodeObj] ## Cache the results of breadth-first traversals
 
 const
-  # layout, default is center in both directions, with left/top margin as offset.
-  LayoutLeft* = 0x01       ## anchor to left item or left side of parent
-  LayoutTop* = 0x02        ## anchor to top item or top side of parent
-  LayoutRight* = 0x04      ## anchor to right item or right side of parent
-  LayoutBottom* = 0x08     ## anchor to bottom item or bottom side of parent
-  LayoutHorizontalFill* = LayoutLeft or LayoutRight ## anchor to both left and right item or parent borders
-  LayoutVerticalFill* = LayoutTop or LayoutBottom ## anchor to both top and bottom item or parent borders
-  LayoutFill* = LayoutHorizontalFill or LayoutVerticalFill ## anchor to all four directions
+  ## layout, default is center in both directions, with left/top margin as offset.
+  LayoutLeft* = 0x01 ## anchor to left node or left side of parent
+  LayoutTop* = 0x02 ## anchor to top node or top side of parent
+  LayoutRight* = 0x04 ## anchor to right node or right side of parent
+  LayoutBottom* = 0x08 ## anchor to bottom node or bottom side of parent
+  LayoutHorizontalFill* = LayoutLeft or LayoutRight
+    ## anchor to both left and right node or parent borders
+  LayoutVerticalFill* = LayoutTop or LayoutBottom
+    ## anchor to both top and bottom node or parent borders
+  LayoutFill* = LayoutHorizontalFill or LayoutVerticalFill
+    ## anchor to all four directions
 
-  # flex-wrap, the default is single-line.
-  LayoutBoxWrap* = 0x004   ## multi-line, wrap left to right
+  ## flex-wrap, the default is single-line.
+  LayoutBoxWrap* = 0x004 ## multi-line, wrap left to right
 
-  # justify-content (start, end, center, space-between), the default is center.
-  LayoutBoxStart* = 0x008  ## at start of row/column
-  LayoutBoxEnd* = 0x010    ## at end of row/column
-  LayoutBoxJustify* = LayoutBoxStart or LayoutBoxEnd ## insert spacing to stretch across whole row/column
+  ## justify-content (start, end, center, space-between), the default is center.
+  LayoutBoxStart* = 0x008 ## at start of row/column
+  LayoutBoxEnd* = 0x010 ## at end of row/column
+  LayoutBoxJustify* = LayoutBoxStart or LayoutBoxEnd
+    ## insert spacing to stretch across whole row/column
 
-  # flex-direction, default is free layout.
-  LayoutBoxRow* = 0x002    ## left to right
+  ## flex-direction, default is free layout.
+  LayoutBoxRow* = 0x002 ## left to right
   LayoutBoxColumn* = 0x003 ## top to bottom
 
 proc `$`*(id: LayoutNodeID): string =
@@ -57,54 +65,61 @@ proc `$`*(id: LayoutNodeID): string =
     return fmt"NODE{int(id)}"
   return "NIL"
 
-proc isNil*(id: LayoutNodeID): bool {.inline.} =
+proc isNil*(id: LayoutNodeID): bool {.inline, raises: [].} =
   id == NIL
 
-template node*(
-  l: ptr LayoutObj, id: LayoutNodeID): ptr LayoutNodeObj =
+proc node*(
+    l: ptr LayoutObj, id: LayoutNodeID
+): ptr LayoutNodeObj {.inline, raises: [].} =
   l.nodes[uint(id) - 1].addr
 
-template model(n: ptr LayoutNodeObj): int =
+proc model(n: ptr LayoutNodeObj): int {.inline, raises: [].} =
   int(n.boxFlags and 0x7)
 
-template direction(n: ptr LayoutNodeObj): int =
+proc direction(n: ptr LayoutNodeObj): int {.inline, raises: [].} =
   int(n.boxFlags and 0x1)
 
-template layoutFlagsDim(
-  n: ptr LayoutNodeObj, dim: static[int]): int =
-  int(n.layoutFlags and 0x1F) shr dim
+proc axisAnchorFlags(
+    n: ptr LayoutNodeObj, dim: static[int]
+): int {.inline, raises: [].} =
+  (int(n.anchorFlags and 0x1F) shr dim) and LayoutHorizontalFill
 
 proc firstChild*(
-  l: ptr LayoutObj, n: ptr LayoutNodeObj): ptr LayoutNodeObj {.inline, raises: [].} =
-  let id = n.firstChild
-  if not id.isNil:
-    return l.node(id)
+    l: ptr LayoutObj, n: ptr LayoutNodeObj
+): ptr LayoutNodeObj {.inline, raises: [].} =
+  let nodeID = n.firstChild
+  if not nodeID.isNil:
+    return l.node(nodeID)
   return nil
 
 proc lastChild*(
-  l: ptr LayoutObj, n: ptr LayoutNodeObj): ptr LayoutNodeObj {.inline, raises: [].} =
-  let id = n.lastChild
-  if not id.isNil:
-    return l.node(id)
+    l: ptr LayoutObj, n: ptr LayoutNodeObj
+): ptr LayoutNodeObj {.inline, raises: [].} =
+  let nodeID = n.lastChild
+  if not nodeID.isNil:
+    return l.node(nodeID)
   return nil
 
 proc nextSibling*(
-  l: ptr LayoutObj, n: ptr LayoutNodeObj): ptr LayoutNodeObj {.inline, raises: [].} =
-  let id = n.nextSibling
-  if not id.isNil:
-    return l.node(id)
+    l: ptr LayoutObj, n: ptr LayoutNodeObj
+): ptr LayoutNodeObj {.inline, raises: [].} =
+  let nodeID = n.nextSibling
+  if not nodeID.isNil:
+    return l.node(nodeID)
   return nil
 
 iterator children*(
-  l: ptr LayoutObj, n: ptr LayoutNodeObj): ptr LayoutNodeObj {.inline, raises: [].} =
-  var id = n.firstChild
-  while not id.isNil:
-    let node = l.node(id)
-    id = node.nextSibling
-    yield node
+    l: ptr LayoutObj, n: ptr LayoutNodeObj
+): ptr LayoutNodeObj {.inline, raises: [].} =
+  var nodeID = n.firstChild
+  while not nodeID.isNil:
+    let n = l.node(nodeID)
+    nodeID = n.nextSibling
+    yield n
 
 proc calcStackedSize(
-  l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]): float {.raises: [].} =
+    l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]
+): float {.inline, raises: [].} =
   const wDim = dim + 2
 
   var needSize = 0f
@@ -116,7 +131,8 @@ proc calcStackedSize(
   needSize
 
 proc calcOverlayedSize(
-  l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]): float {.raises: [].} =
+    l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]
+): float {.inline, raises: [].} =
   const wDim = dim + 2
 
   var needSize = 0f
@@ -128,7 +144,8 @@ proc calcOverlayedSize(
   needSize
 
 proc calcWrappedOverlayedSize(
-  l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]): float {.raises: [].} =
+    l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]
+): float {.inline, raises: [].} =
   const wDim = dim + 2
 
   var needSize = 0f
@@ -144,7 +161,8 @@ proc calcWrappedOverlayedSize(
   needSize + needSize2
 
 proc calcWrappedStackedSize(
-  l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]): float {.raises: [].} =
+    l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]
+): float {.inline, raises: [].} =
   const wDim = dim + 2
 
   var needSize = 0f
@@ -159,7 +177,7 @@ proc calcWrappedStackedSize(
     needSize = needSize + size
   max(needSize2, needSize)
 
-proc calcSize(l: ptr LayoutObj, dim: static[int]) {.raises: [].} =
+proc calcSize(l: ptr LayoutObj, dim: static[int]) {.inline, raises: [].} =
   const wDim = dim + 2
 
   var idx = l.sorted.len
@@ -207,8 +225,8 @@ proc calcSize(l: ptr LayoutObj, dim: static[int]) {.raises: [].} =
     n.computed[wDim] = needSize
 
 proc arrangeStacked(
-  l: ptr LayoutObj, n: ptr LayoutNodeObj,
-  dim: static[int], wrap: static[bool]) {.raises: [].} =
+    l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int], wrap: static[bool]
+) {.inline, raises: [].} =
   const wDim = dim + 2
 
   let computed = n.computed
@@ -236,11 +254,11 @@ proc arrangeStacked(
     # first pass: count items that need to be expanded, and the space that is used
     for idx in arrangeRangeBegin ..< arrangeRangeEnd:
       let child = l.sorted[idx]
-    
+
       inc itemCount, 1
       var extend = used + child.computed[dim] + child.margin[wDim]
 
-      if (child.layoutFlagsDim(dim) and LayoutHorizontalFill) == LayoutHorizontalFill:
+      if child.axisAnchorFlags(dim) == LayoutHorizontalFill:
         inc count
       else:
         if child.size[dim] <= 0:
@@ -293,9 +311,9 @@ proc arrangeStacked(
     # second pass: distribute and rescale
     for idx in arrangeRangeBegin ..< expandRangeEnd:
       let child = l.sorted[idx]
-    
+
       x += child.computed[dim] + extraMargin
-      if (child.layoutFlagsDim(dim) and LayoutHorizontalFill) == LayoutHorizontalFill:
+      if child.axisAnchorFlags(dim) == LayoutHorizontalFill:
         # grow
         x1 = x + filler
       elif child.size[dim] > 0:
@@ -305,10 +323,11 @@ proc arrangeStacked(
         x1 = x + max(0f, child.computed[wDim] + eater)
 
       let ix0 = x
-      let ix1 = when wrap:
-        min(maxX2 - child.margin[wDim], x1)
-      else:
-        x1
+      let ix1 =
+        when wrap:
+          min(maxX2 - child.margin[wDim], x1)
+        else:
+          x1
 
       child.computed[dim] = ix0 # pos
       child.computed[wDim] = ix1 - ix0 # size
@@ -319,7 +338,8 @@ proc arrangeStacked(
     arrangeRangeBegin = expandRangeEnd
 
 proc arrangeOverlay(
-  l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]) {.raises: [].} =
+    l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]
+) {.inline, raises: [].} =
   const wDim = dim + 2
 
   let offset = n.computed[dim]
@@ -327,7 +347,7 @@ proc arrangeOverlay(
 
   for idx in n.childOffset ..< n.childOffset + n.childCount:
     let child = l.sorted[idx]
-    case child.layoutFlagsDim(dim) and LayoutHorizontalFill
+    case child.axisAnchorFlags(dim)
     of LayoutHorizontalFill:
       child.computed[wDim] = max(0f, space - child.computed[dim] - child.margin[wDim])
     of LayoutRight:
@@ -343,14 +363,17 @@ proc arrangeOverlay(
     child.computed[dim] = child.computed[dim] + offset
 
 proc arrangeOverlaySqueezedRange(
-  l: ptr LayoutObj, dim: static[int],
-  squeezedRangeBegin, arrangeRangeEnd: uint32, offset, space: float) {.raises: [].} =
+    l: ptr LayoutObj,
+    dim: static[int],
+    squeezedRangeBegin, arrangeRangeEnd: uint32,
+    offset, space: float,
+) {.inline, raises: [].} =
   const wDim = dim + 2
 
   for idx in squeezedRangeBegin ..< arrangeRangeEnd:
     let child = l.sorted[idx]
     let minSize = max(0f, space - child.computed[dim] - child.margin[wDim])
-    case child.layoutFlagsDim(dim) and LayoutHorizontalFill
+    case child.axisAnchorFlags(dim)
     of LayoutHorizontalFill:
       child.computed[wDim] = minSize
     of LayoutLeft:
@@ -366,7 +389,8 @@ proc arrangeOverlaySqueezedRange(
     child.computed[dim] = child.computed[dim] + offset
 
 proc arrangeWrappedOverlaySqueezed(
-  l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]): float {.raises: [].} =
+    l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]
+): float {.inline, raises: [].} =
   const wDim = dim + 2
 
   var offset = n.computed[dim]
@@ -385,15 +409,21 @@ proc arrangeWrappedOverlaySqueezed(
     let childSize = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
     needSize = max(needSize, childSize)
 
-  l.arrangeOverlaySqueezedRange(dim, squeezedRangeBegin, n.childOffset + n.childCount, offset, needSize)
+  l.arrangeOverlaySqueezedRange(
+    dim, squeezedRangeBegin, n.childOffset + n.childCount, offset, needSize
+  )
   offset + needSize
 
-proc arrange(l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]) {.inline, raises: [].} =
+proc arrange(
+    l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]
+) {.inline, raises: [].} =
   const wDim = dim + 2
 
   case n.model
   of LayoutBoxColumn or LayoutBoxWrap:
     if dim > 0:
+      assert n.isSkipXAxis
+
       # The x-coordinates are recalculated here.
       l.arrangeStacked(n, 1, true)
       let offset = l.arrangeWrappedOverlaySqueezed(n, 0)
@@ -408,12 +438,16 @@ proc arrange(l: ptr LayoutObj, n: ptr LayoutNodeObj, dim: static[int]) {.inline,
       l.arrangeStacked(n, dim, false)
     else:
       l.arrangeOverlaySqueezedRange(
-        dim, n.childOffset, n.childOffset + n.childCount, n.computed[dim], n.computed[wDim]
+        dim,
+        n.childOffset,
+        n.childOffset + n.childCount,
+        n.computed[dim],
+        n.computed[wDim],
       )
   else:
     l.arrangeOverlay(n, dim)
 
-proc arrange(l: ptr LayoutObj, dim: static[int]) {.raises: [].} =
+proc arrange(l: ptr LayoutObj, dim: static[int]) {.inline, raises: [].} =
   for idx in 0 ..< l.sorted.len:
     let n = l.sorted[idx]
 
@@ -441,7 +475,9 @@ proc compute*(l: ptr LayoutObj, n: ptr LayoutNodeObj) {.inline, raises: [].} =
     n.childOffset = uint32(l.sorted.len)
 
     if n.model == int(LayoutBoxColumn or LayoutBoxWrap):
+      # delayed calculations are required
       n.isSkipXAxis = true
+
     n.isBreak = false
 
     var count = 0

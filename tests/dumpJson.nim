@@ -5,15 +5,12 @@ import buju
 import buju/core
 
 template getAddr(body): auto =
-  when NimMajor > 1:
-    body.addr
-  else:
-    body.unsafeAddr
+  when NimMajor > 1: body.addr else: body.unsafeAddr
 
 type
   NodeAttr = object
     boxFlags*: uint8
-    layoutFlags*: uint8
+    anchorFlags*: uint8
     width*: float
     height*: float
     marginLeft*: float
@@ -26,7 +23,9 @@ type
     parent*: int
     state*: NodeAttr
 
-proc recursionDump(l: ptr LayoutObj, id, parent: LayoutNodeID, nodes: var seq[NodeItem]) =
+proc recursionDump(
+    l: ptr LayoutObj, id, parent: LayoutNodeID, nodes: var seq[NodeItem]
+) =
   let n = l.node(id)
 
   block:
@@ -35,7 +34,7 @@ proc recursionDump(l: ptr LayoutObj, id, parent: LayoutNodeID, nodes: var seq[No
     item.parent = int(parent)
 
     item.state.boxFlags = uint8(n.boxFlags)
-    item.state.layoutFlags = uint8(n.layoutFlags)
+    item.state.anchorFlags = uint8(n.anchorFlags)
     item.state.width = n.size[0]
     item.state.height = n.size[1]
     item.state.marginLeft = n.margin[0]
@@ -57,4 +56,4 @@ proc dumpJson*(l: Layout, id: LayoutNodeID): string =
 
   var nodes = newSeqOfCap[NodeItem](l.nodes.len)
   l.recursionDump(id, NIL, nodes)
-  pretty( %* nodes)
+  pretty(%*nodes)

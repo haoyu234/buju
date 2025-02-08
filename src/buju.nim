@@ -11,227 +11,247 @@ export
   LayoutBoxColumn, LayoutLeft, LayoutTop, LayoutRight, LayoutBottom,
   LayoutHorizontalFill, LayoutVerticalFill, LayoutFill
 
-type
-  Layout* = distinct LayoutObj ## Layout context objects. To avoid private method 
-                               ## leaks, we use distinct type.
+type Layout* = distinct LayoutObj ## Layout context object.
 
 template getAddr(body): auto =
-  when NimMajor > 1:
-    body.addr
-  else:
-    body.unsafeAddr
+  when NimMajor > 1: body.addr else: body.unsafeAddr
 
-proc len*(l: Layout): int {.inline.} =
+proc len*(l: Layout): int {.inline, raises: [].} =
   ## Returns the length of `nodes`.
 
   distinctBase(l).nodes.len
 
-proc clear*(l: var Layout) {.inline.} =
-  ## Clears all of the items in a `Layout`. Use this when
-  ## you want to re-declare your layout starting from the root item. This does not
+proc clear*(l: var Layout) {.inline, raises: [].} =
+  ## Clears all of the nodes in a `Layout`. Use this when
+  ## you want to re-declare your layout starting from the root node. This does not
   ## free any memory or perform allocations. It's safe to use the `Layout` again
   ## after calling this.
 
   distinctBase(l).nodes.setLen(0)
 
-proc firstChild*(l: Layout, item: LayoutNodeID): LayoutNodeID {.inline.} =
-  ## Get the id of first child of an item, if any. Returns `LayoutNodeID.NIL` if there
+proc firstChild*(l: Layout, nodeID: LayoutNodeID): LayoutNodeID {.inline, raises: [].} =
+  ## Get the id of first child of an node, if any. Returns `LayoutNodeID.NIL` if there
   ## is no child.
-
-  let l = distinctBase(l).getAddr
-
-  let node = l.node(item)
-  if not node.isNil:
-    return node.firstChild
-  return NIL
-
-proc lastChild*(l: Layout, item: LayoutNodeID): LayoutNodeID {.inline.} =
-  ## Get the id of last child of an item, if any. Returns `LayoutNodeID.NIL` if there
-  ## is no child.
-
-  let l = distinctBase(l).getAddr
-
-  let node = l.node(item)
-  if not node.isNil:
-    return node.lastChild
-  return NIL
-
-proc nextSibling*(l: Layout, item: LayoutNodeID): LayoutNodeID {.inline.} =
-  ## Get the id of the next sibling of an item, if any. Returns `LayoutNodeID.NIL` if
-  ## there is no next sibling.
-
-  let l = distinctBase(l).getAddr
-
-  let node = l.node(item)
-  if not node.isNil:
-    return node.nextSibling
-  return NIL
-
-iterator children*(l: Layout, item: LayoutNodeID): LayoutNodeID {.inline.} =
-  ## Iterates over all direct children of an item.
-
-  let l = distinctBase(l).getAddr
-
-  if not item.isNil:
-    var node = l.node(item)
-    var item = node.firstChild
-
-    while not item.isNil:
-      node = l.node(item)
-      yield item
-
-      item = node.nextSibling
-
-proc node*(l: var Layout): LayoutNodeID {.inline.} =
-  ## Create a new item, which can just be thought of as a rectangle. Returns the
-  ## id used to identify the item.
-
-  let l = distinctBase(l).getAddr
-
-  let len = l.nodes.len
-  let newLen = len +% 1
-
-  l.nodes.setLen(newLen)
-
-  when defined(js):
-    l.nodes[len].id = cast[LayoutNodeID](newLen)
-
-  cast[LayoutNodeID](newLen)
-
-proc setBoxFlags*(l: var Layout, item: LayoutNodeID, boxFlags: int) {.inline.} =
-  ## Set the flags on an item which determines how it behaves as a parent.
-  ## For example, setting `LayoutBoxColumn` will make an item behave as if it were a column,
-  ## it will layout its children vertically.
-
-  let l = distinctBase(l).getAddr
-
-  let node = l.node(item)
-  node.boxFlags = uint8(boxFlags)
-
-proc setLayoutFlags*(l: var Layout, item: LayoutNodeID,
-    layoutFlags: int) {.inline.} =
-  ## Set the flags on an item which determines how it behaves as a child inside of
-  ## a parent item. For example, setting `LayoutVerticalFill` will make an item try to fill
-  ## up all available vertical space inside of its parent.
-
-  let l = distinctBase(l).getAddr
-
-  let node = l.node(item)
-  node.layoutFlags = uint8(layoutFlags)
-
-proc setSize*(l: var Layout, item: LayoutNodeID, size: Vec2) {.inline.} =
-  ## Sets the size of an item. The components of the vector are:
-  ## 0: width, 1: height.
-
-  let l = distinctBase(l).getAddr
-
-  let node = l.node(item)
-  node.size = size
-
-proc setMargin*(l: var Layout, item: LayoutNodeID, margin: Vec4) {.inline.} =
-  ## Set the margins on an item. The components of the vector are:
-  ## 0: left, 1: top, 2: right, 3: bottom.
-
-  let l = distinctBase(l).getAddr
-
-  let node = l.node(item)
-  node.margin = margin
-
-proc insertChild*(l: var Layout, parentItem,
-    childItem: LayoutNodeID) {.inline.} =
-  ## Inserts an item into another item, forming a parent - child relationship. An
-  ## item can contain any number of child items. Items inserted into a parent are
-  ## put at the end of the ordering, after any existing siblings.
-
-  let l = distinctBase(l).getAddr
-
-  let parent = l.node(parentItem)
-
-  if not parent.lastChild.isNil:
-    let lastChild = l.lastChild(parent)
-    lastChild.nextSibling = childItem
-
-    let node = l.node(childItem)
-    node.prevSibling = parent.lastChild
-    parent.lastChild = childItem
-  else:
-    parent.firstChild = childItem
-    parent.lastChild = childItem
-
-proc removeChild*(l: var Layout, parentItem,
-    childItem: LayoutNodeID) {.inline.} =
-  ## Removing an item from another, will untie the parent-child relationship between them.
-
-  let l = distinctBase(l).getAddr
-
-  let node = l.node(childItem)
-  let parent = l.node(parentItem)
 
   let
-    prev = node.prevSibling
-    next = node.nextSibling
+    l = distinctBase(l).getAddr
+    n = l.node(nodeID)
 
-  if next == prev:
-    parent.lastChild = LayoutNodeID.NIL
-    parent.firstChild = LayoutNodeID.NIL
+  if not n.isNil:
+    return n.firstChild
+  return NIL
 
-    if not next.isNil:
-      node.prevSibling = LayoutNodeID.NIL
-      node.nextSibling = LayoutNodeID.NIL
+proc lastChild*(l: Layout, nodeID: LayoutNodeID): LayoutNodeID {.inline, raises: [].} =
+  ## Get the id of last child of an node, if any. Returns `LayoutNodeID.NIL` if there
+  ## is no child.
 
-      let sibling = l.node(next)
-      sibling.prevSibling = LayoutNodeID.NIL
-      sibling.nextSibling = LayoutNodeID.NIL
+  let
+    l = distinctBase(l).getAddr
+    n = l.node(nodeID)
+
+  if not n.isNil:
+    return n.lastChild
+  return NIL
+
+proc nextSibling*(
+    l: Layout, nodeID: LayoutNodeID
+): LayoutNodeID {.inline, raises: [].} =
+  ## Get the id of the next sibling of an node, if any. Returns `LayoutNodeID.NIL` if
+  ## there is no next sibling.
+
+  let
+    l = distinctBase(l).getAddr
+    n = l.node(nodeID)
+
+  if not n.isNil:
+    return n.nextSibling
+  return NIL
+
+iterator children*(
+    l: Layout, nodeID: LayoutNodeID
+): LayoutNodeID {.inline, raises: [].} =
+  ## Iterates over all direct children of an node.
+
+  let l = distinctBase(l).getAddr
+
+  if not nodeID.isNil:
+    var
+      n = l.node(nodeID)
+      id = n.firstChild
+
+    while not id.isNil:
+      n = l.node(id)
+      yield id
+
+      id = n.nextSibling
+
+proc node*(l: var Layout): LayoutNodeID {.inline, raises: [].} =
+  ## Create a new node, which can just be thought of as a rectangle. Returns the
+  ## id used to identify the node.
+
+  let
+    l = distinctBase(l).getAddr
+    len = l.nodes.len
+
+  l.nodes.setLen(len + 1)
+
+  let id = cast[LayoutNodeID](l.nodes.len)
+
+  when defined(js):
+    l.nodes[len].id = id
+
+  id
+
+proc setBoxFlags*(
+    l: var Layout, nodeID: LayoutNodeID, boxFlags: int
+) {.inline, raises: [].} =
+  ## Set the flags on an node which determines how it behaves as a parent.
+  ## For example, setting `LayoutBoxColumn` will make an node behave as if it were a column,
+  ## it will layout its children vertically.
+
+  let
+    l = distinctBase(l).getAddr
+    n = l.node(nodeID)
+
+  n.boxFlags = uint8(boxFlags)
+
+proc setLayoutFlags*(
+    l: var Layout, nodeID: LayoutNodeID, layoutFlags: int
+) {.inline, raises: [].} =
+  ## Set the flags on an node which determines how it behaves as a child inside of
+  ## a parent node. For example, setting `LayoutVerticalFill` will make an node try to fill
+  ## up all available vertical space inside of its parent.
+
+  let
+    l = distinctBase(l).getAddr
+    n = l.node(nodeID)
+
+  n.anchorFlags = uint8(layoutFlags)
+
+proc setSize*(l: var Layout, nodeID: LayoutNodeID, size: Vec2) {.inline, raises: [].} =
+  ## Sets the size of an node. 
+  ## The components of the vector are:
+  ## 0: width, 1: height.
+
+  let
+    l = distinctBase(l).getAddr
+    n = l.node(nodeID)
+
+  n.size = size
+
+proc setMargin*(
+    l: var Layout, nodeID: LayoutNodeID, margin: Vec4
+) {.inline, raises: [].} =
+  ## Set the margins on an node. 
+  ## The components of the vector are:
+  ## 0: left, 1: top, 2: right, 3: bottom.
+
+  let
+    l = distinctBase(l).getAddr
+    n = l.node(nodeID)
+
+  n.margin = margin
+
+proc insertChild*(
+    l: var Layout, parentID, childID: LayoutNodeID
+) {.inline, raises: [].} =
+  ## Inserts an node into another node, forming a parent - child relationship. An
+  ## node can contain any number of child nodes. Items inserted into a parent are
+  ## put at the end of the ordering, after any existing siblings.
+
+  let
+    l = distinctBase(l).getAddr
+    p = l.node(parentID)
+
+  if not p.lastChild.isNil:
+    let lastChild = l.lastChild(p)
+    lastChild.nextSibling = childID
+
+    let node = l.node(childID)
+    node.prevSibling = p.lastChild
+    p.lastChild = childID
+  else:
+    p.firstChild = childID
+    p.lastChild = childID
+
+proc removeChild*(
+    l: var Layout, parentID, childID: LayoutNodeID
+) {.inline, raises: [].} =
+  ## Removing an node from another, will untie the parent-child relationship between them.
+
+  let
+    l = distinctBase(l).getAddr
+    c = l.node(childID)
+    p = l.node(parentID)
+
+  let
+    p2 = c.prevSibling
+    n2 = c.nextSibling
+
+  if n2 == p2:
+    if not n2.isNil:
+      c.prevSibling = NIL
+      c.nextSibling = NIL
+
+      let n = l.node(n2)
+      n.prevSibling = NIL
+      n.nextSibling = NIL
+
+    p.lastChild = NIL
+    p.firstChild = NIL
     return
 
-  if parent.firstChild == childItem:
-    parent.firstChild = next
+  if p.firstChild == childID:
+    p.firstChild = n2
 
-  if parent.lastChild == childItem:
-    parent.lastChild = prev
+  if p.lastChild == childID:
+    p.lastChild = p2
 
-  if not next.isNil:
-    let sibling = l.node(next)
-    sibling.prevSibling = prev
-    node.nextSibling = LayoutNodeID.NIL
+  if not n2.isNil:
+    let n = l.node(n2)
+    n.prevSibling = p2
+    c.nextSibling = NIL
 
-  if not prev.isNil:
-    let sibling = l.node(prev)
-    sibling.nextSibling = next
-    node.prevSibling = LayoutNodeID.NIL
+  if not p2.isNil:
+    let n = l.node(p2)
+    n.nextSibling = n2
+    c.prevSibling = NIL
 
-proc compute*(l: var Layout, item: LayoutNodeID) {.inline.} =
-  ## Running the layout calculations from a specific item is useful if you want
+proc compute*(l: var Layout, nodeID: LayoutNodeID) {.inline, raises: [].} =
+  ## Running the layout calculations from a specific node is useful if you want
   ## need to iteratively re-run parts of your layout hierarchy, or if you are only
   ## interested in updating certain subsets of it. Be careful when using this,
-  ## it's easy to generated bad output if the parent items haven't yet had their
+  ## it's easy to generated bad output if the parent nodes haven't yet had their
   ## output rectangles calculated, or if they've been invalidated (e.g. due to
   ## re-allocation).
   ##
-  ## After calling this, you can use `computed` to query for an item's calculated
+  ## After calling this, you can use `computed` to query for an node's calculated
   ## rectangle. If you use procedures such as `insertChild` or `removeChild` after
   ## calling this, your calculated data may become invalid if a reallocation
   ## occurs.
   ##
-  ## You should prefer to recreate your items starting from the root instead of
+  ## You should prefer to recreate your nodes starting from the root instead of
   ## doing fine-grained updates to the existing `Layout`.
   ##
-  ## However, it's safe to use `setSize` on an item, and then re-run
+  ## However, it's safe to use `setSize` on an node, and then re-run
   ## `compute`. This might be useful if you are doing a resizing animation
-  ## on items in a layout without any contents changing.
+  ## on nodes in a layout without any contents changing.
 
-  let l = distinctBase(l).getAddr
+  let
+    l = distinctBase(l).getAddr
+    n = l.node(nodeID)
 
-  let node = l.node(item)
-  l.compute(node)
+  l.compute(n)
 
-proc computed*(l: Layout, item: LayoutNodeID): Vec4 {.inline.} =
-  ## Returns the calculated rectangle of an item. This is only valid after calling
+proc computed*(l: Layout, nodeID: LayoutNodeID): Vec4 {.inline, raises: [].} =
+  ## Returns the calculated rectangle of an node. This is only valid after calling
   ## `compute` and before any other reallocation occurs. Otherwise, the
-  ## result will be undefined. The components of the vector are:
+  ## result will be undefined. 
+  ## The components of the vector are:
   ## 0: x starting position, 1: y starting position, 2: width, 3: height.
 
-  let l = distinctBase(l).getAddr
+  let
+    l = distinctBase(l).getAddr
+    n = l.node(nodeID)
 
-  let node = l.node(item)
-  node.computed
+  n.computed

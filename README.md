@@ -1,6 +1,7 @@
 # buju
 
-buju (布局) is a simple layout engine, based on [layout.h](https://github.com/randrew/layout)
+buju (布局) is a simple layout engine, it is a Nim port of [layout.h](https://github.com/randrew/layout).
+It has fixed several bugs left over from the original implementation and optimized the performance of some functions.
 
 ```nim
 import buju
@@ -48,5 +49,5 @@ check l.computed(node10) == vec4(20, 40, 10, 10)
 
 ```
 
-The [editor](https://htmlpreview.github.io/?https://github.com/haoyu234/buju/blob/main/assets/demo.html) is in `assets/demo.html`, and here is the output:
-![assets/demo.png](assets/demo.png)
+The [online editor](https://htmlpreview.github.io/?https://github.com/haoyu234/buju/blob/main/assets/demo.html) is in `assets/demo.html`, and here is the output:
+![assets/demo.png](https://github.com/haoyu234/buju/raw/main/assets/demo.png)

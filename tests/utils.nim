@@ -18,5 +18,4 @@ template test2*(name: static[string], body: untyped) =
         let path = "dumps/" & name & ".json"
         writeFile(path, jsonStr)
 
-
     body

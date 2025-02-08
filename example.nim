@@ -12,18 +12,18 @@ proc main() =
   # We first need one of these
   var l = default(Layout)
 
-  # Create our root item. Items are just 2D boxes.
+  # Create our root node. Nodes are just 2D boxes.
   let root = l.node()
 
   # Let's pretend we have a window in our game or OS of some known dimension.
-  # We'll want to explicitly set our root item to be that size.
+  # We'll want to explicitly set our root node to be that size.
   l.setSize(root, vec2(1280, 720))
 
-  # Set our root item to arrange its children in a row, left-to-right, in the
+  # Set our root node to arrange its children in a row, left-to-right, in the
   # order they are inserted.
   l.setBoxFlags(root, LayoutBoxRow)
 
-  # Create the item for our master list.
+  # Create the node for our master list.
   let masterList = l.node()
   l.insertChild(root, masterList)
 
@@ -31,7 +31,7 @@ proc main() =
   # available vertical space. 
   l.setSize(masterList, vec2(400, 0))
 
-  # We set our item's behavior within its parent to desire filling up available
+  # We set our node's behavior within its parent to desire filling up available
   # vertical space.
   l.setLayoutFlags(masterList, LayoutVerticalFill)
 
@@ -67,13 +67,9 @@ proc main() =
 
   # If we're using an immediate-mode graphics library, we could draw our boxes
   # with it now.
-  drawXYWH(
-    masterListRect[0], 
-    masterListRect[1], 
-    masterListRect[2], 
-    masterListRect[3])
+  drawXYWH(masterListRect[0], masterListRect[1], masterListRect[2], masterListRect[3])
 
-  # You could also recursively go through the entire item hierarchy using
+  # You could also recursively go through the entire node hierarchy using
   # `firstChild` and `nextSibling`, or something like that.
 
   # After you've used `compute`, the results should remain valid unless a
@@ -90,7 +86,7 @@ proc main() =
   # tree from scratch, we use `clear`:
   l.clear()
 
-  # And now we could start over with creating the root item, inserting more
+  # And now we could start over with creating the root node, inserting more
   # items, etc. The reason we don't create a new context from scratch is that we
   # want to reuse the buffer that was already allocated.
 

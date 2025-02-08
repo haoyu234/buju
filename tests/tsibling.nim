@@ -4,8 +4,9 @@ import std/typetraits
 import buju
 import buju/core
 
-proc check2(l: ptr LayoutObj, n, firstChild, lastChild, prevSibling,
-    nextSibling: LayoutNodeID) =
+proc check2(
+    l: ptr LayoutObj, n, firstChild, lastChild, prevSibling, nextSibling: LayoutNodeID
+) =
   let n = l.node(n)
   check n.firstChild == firstChild
   check n.lastChild == lastChild

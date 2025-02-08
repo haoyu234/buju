@@ -11,7 +11,7 @@ test2 "wrap_row_1":
   const numItems = 5 * 5
   var items: array[numItems, LayoutNodeID]
 
-  for i in 0..<numItems:
+  for i in 0 ..< numItems:
     let node = l.node()
     l.setSize(node, vec2(10, 10))
     l.insertChild(root, node)
@@ -19,7 +19,7 @@ test2 "wrap_row_1":
 
   l.compute(root)
 
-  for i in 0..<numItems:
+  for i in 0 ..< numItems:
     let x = i mod 5
     let y = i div 5
     check l.computed(items[i]) == vec4(float(x * 10), float(y * 10), 10, 10)
@@ -32,7 +32,7 @@ test2 "wrap_row_2":
   const numItems = 5 * 5
   var items: array[numItems, LayoutNodeID]
 
-  for i in 0..<numItems:
+  for i in 0 ..< numItems:
     let node = l.node()
     l.setSize(node, vec2(10, 10))
     l.insertChild(root, node)
@@ -40,7 +40,7 @@ test2 "wrap_row_2":
 
   l.compute(root)
 
-  for i in 0..<numItems:
+  for i in 0 ..< numItems:
     let x = i mod 5
     let y = i div 5
     check l.computed(items[i]) == vec4(float(x * 10), float(y * 10), 10, 10)
@@ -53,7 +53,7 @@ test2 "wrap_row_3":
   const numItems = 5 * 5
   var items: array[numItems, LayoutNodeID]
 
-  for i in 0..<numItems:
+  for i in 0 ..< numItems:
     let node = l.node()
     l.setSize(node, vec2(10, 10))
     l.insertChild(root, node)
@@ -61,7 +61,7 @@ test2 "wrap_row_3":
 
   l.compute(root)
 
-  for i in 0..<numItems:
+  for i in 0 ..< numItems:
     let x = i mod 5
     let y = i div 5
     check l.computed(items[i]) == vec4(float(7 + x * 10), float(y * 10), 10, 10)
@@ -78,7 +78,7 @@ test2 "wrap_row_4":
   const numItems = 5 * 5
   var items: array[numItems, LayoutNodeID]
 
-  for i in 0..<numItems:
+  for i in 0 ..< numItems:
     let node = l.node()
     l.setSize(node, vec2(10, 10))
     l.insertChild(root, node)
@@ -86,11 +86,10 @@ test2 "wrap_row_4":
 
   l.compute(root)
 
-  for i in 0..<numItems:
+  for i in 0 ..< numItems:
     let x = i mod 5
     let y = i div 5
-    check l.computed(items[i]) == vec4(float(4 + x * 10), float(7 + y * 10),
-        10, 10)
+    check l.computed(items[i]) == vec4(float(4 + x * 10), float(7 + y * 10), 10, 10)
 
 test2 "wrap_row_5":
   let root = l.node()
@@ -100,7 +99,7 @@ test2 "wrap_row_5":
   const numItems = 5 * 5
   var items: array[numItems, LayoutNodeID]
 
-  for i in 0..<numItems:
+  for i in 0 ..< numItems:
     let node = l.node()
     l.setSize(node, vec2(10, 10))
     l.insertChild(root, node)
@@ -108,7 +107,7 @@ test2 "wrap_row_5":
 
   l.compute(root)
 
-  for i in 0..<numItems:
+  for i in 0 ..< numItems:
     let x = i mod 5
     let y = i div 5
     check l.computed(items[i]) == vec4(float(x * 11), float(y * 10), 10, 10)
@@ -121,7 +120,7 @@ test2 "wrap_column_1":
   const numItems = 5 * 5
   var items: array[numItems, LayoutNodeID]
 
-  for i in 0..<numItems:
+  for i in 0 ..< numItems:
     let node = l.node()
     l.setSize(node, vec2(10, 10))
     l.insertChild(root, node)
@@ -129,7 +128,7 @@ test2 "wrap_column_1":
 
   l.compute(root)
 
-  for i in 0..<numItems:
+  for i in 0 ..< numItems:
     let x = i div 5
     let y = i mod 5
     check l.computed(items[i]) == vec4(float(x * 10), float(y * 10), 10, 10)
@@ -142,7 +141,7 @@ test2 "wrap_column_2":
   const numItems = 5 * 5
   var items: array[numItems, LayoutNodeID]
 
-  for i in 0..<numItems:
+  for i in 0 ..< numItems:
     let node = l.node()
     l.setSize(node, vec2(10, 10))
     l.insertChild(root, node)
@@ -150,7 +149,7 @@ test2 "wrap_column_2":
 
   l.compute(root)
 
-  for i in 0..<numItems:
+  for i in 0 ..< numItems:
     let x = i div 5
     let y = i mod 5
     check l.computed(items[i]) == vec4(float(x * 10), float(y * 10), 10, 10)
@@ -163,7 +162,7 @@ test2 "wrap_column_3":
   const numItems = 5 * 5
   var items: array[numItems, LayoutNodeID]
 
-  for i in 0..<numItems:
+  for i in 0 ..< numItems:
     let node = l.node()
     l.setSize(node, vec2(10, 10))
     l.insertChild(root, node)
@@ -171,7 +170,7 @@ test2 "wrap_column_3":
 
   l.compute(root)
 
-  for i in 0..<numItems:
+  for i in 0 ..< numItems:
     let x = i div 5
     let y = i mod 5
     check l.computed(items[i]) == vec4(float(x * 10), float(7 + y * 10), 10, 10)
@@ -188,7 +187,7 @@ test2 "wrap_column_4":
   const numItems = 5 * 5
   var items: array[numItems, LayoutNodeID]
 
-  for i in 0..<numItems:
+  for i in 0 ..< numItems:
     let node = l.node()
     l.setSize(node, vec2(10, 10))
     l.insertChild(root, node)
@@ -196,11 +195,10 @@ test2 "wrap_column_4":
 
   l.compute(root)
 
-  for i in 0..<numItems:
+  for i in 0 ..< numItems:
     let x = i div 5
     let y = i mod 5
-    check l.computed(items[i]) == vec4(float(7 + x * 10), float(4 + y * 10),
-        10, 10)
+    check l.computed(items[i]) == vec4(float(7 + x * 10), float(4 + y * 10), 10, 10)
 
 test2 "anchor_right_margin1":
   let root = l.node()
