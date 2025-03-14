@@ -91,14 +91,12 @@ proc node*(l: var Layout): LayoutNodeID {.inline, raises: [].} =
 
   let
     l = distinctBase(l).getAddr
-    len = l.nodes.len
+    offset = l.nodes.len
 
-  l.nodes.setLen(len + 1)
+  l.nodes.setLen(offset + 1)
 
   let id = cast[LayoutNodeID](l.nodes.len)
-
-  when defined(js):
-    l.nodes[len].id = id
+  l.nodes[offset].id = id
 
   id
 
