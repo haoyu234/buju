@@ -182,6 +182,8 @@ proc calcWrappedStackedSize(
 proc calcSize(l: ptr LayoutObj, dim: static[int]) {.inline, raises: [].} =
   const wDim = dim + 2
 
+  # Note that we are doing a reverse-order loop here, 
+  # so the child nodes are always calculated before the parent nodes.
   var idx = l.caches.len
   while idx > 0:
     dec idx, 1
@@ -198,8 +200,7 @@ proc calcSize(l: ptr LayoutObj, dim: static[int]) {.inline, raises: [].} =
       n.computed[wDim] = n.size[dim]
       continue
 
-    # Calculate our size based on children items. Note that we've already
-    # called calcSize on our children at this point.
+    # Calculate our size based on children items.
     let needSize =
       case n.model
       of LayoutBoxColumn or LayoutBoxWrap:
@@ -435,7 +436,7 @@ proc arrange(
     if dim > 0:
       assert n.isSkipXAxis
 
-      # The x-coordinates are recalculated here.
+      # The X-axis are recalculated here.
       l.arrangeStacked(c, 1, true)
       let offset = l.arrangeWrappedOverlaySqueezed(c, 0)
       n.computed[2] = offset - n.computed[0]
@@ -479,6 +480,8 @@ proc compute*(l: ptr LayoutObj, n: ptr LayoutNodeObj) {.inline, raises: [].} =
 
   var idx = 0
 
+  # Cache the results of the breadth-first traversal. 
+  # For subsequent calculations, you can directly access the child nodes using subscripts.
   while idx < l.caches.len:
     let n = l.caches[idx].node
     let childOffset = uint32(l.caches.len)
