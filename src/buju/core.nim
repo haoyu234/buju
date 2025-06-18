@@ -50,17 +50,20 @@ const
     ## anchor to all four directions
 
   ## flex-wrap, the default is single-line.
+  LayoutBoxNoWrap* = 0x000
   LayoutBoxWrap* = 0x004 ## multi-line, wrap left to right
 
   ## justify-content (start, end, center, space-between), the default is center.
+  LayoutBoxMiddle* = 0x000 ## at center of row/column
   LayoutBoxStart* = 0x008 ## at start of row/column
   LayoutBoxEnd* = 0x010 ## at end of row/column
   LayoutBoxJustify* = LayoutBoxStart or LayoutBoxEnd
     ## insert spacing to stretch across whole row/column
 
-  ## flex-direction, default is free layout.
-  LayoutBoxRow* = 0x002 ## left to right
-  LayoutBoxColumn* = 0x003 ## top to bottom
+  ## layout type, default is free layout.
+  LayoutBoxFree* = 0x000 ## free layout
+  LayoutBoxRow* = 0x002 ## flex layout, left to right
+  LayoutBoxColumn* = 0x003 ## flex layout, top to bottom
 
 proc `$`*(id: LayoutNodeID): string =
   if id != NIL:
@@ -222,7 +225,7 @@ proc calcSize(l: ptr LayoutObj, dim: static[int]) {.inline, raises: [].} =
         else:
           l.calcOverlayedSize(c, dim)
       else:
-        # layout model
+        # free layout model
         l.calcOverlayedSize(c, dim)
 
     # Set our output data size. Will be used by parent calcXxxSize procedures,
