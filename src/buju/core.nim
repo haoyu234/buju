@@ -58,7 +58,11 @@ const
   LayoutBoxStart* = 0x008 ## at start of row/column
   LayoutBoxEnd* = 0x010 ## at end of row/column
   LayoutBoxJustify* = LayoutBoxStart or LayoutBoxEnd
-    ## insert spacing to stretch across whole row/column
+    ## insert spacing to stretch across whole row/column, default is space-between
+
+  LayoutBoxSpaceBetween* = LayoutBoxJustify or 0x000
+  LayoutBoxSpaceAround* = LayoutBoxJustify or 0x020
+  LayoutBoxSpaceEvenly* = LayoutBoxJustify or 0x040
 
   ## layout type, default is free layout.
   LayoutBoxFree* = 0x000 ## free layout
@@ -302,7 +306,17 @@ proc arrangeStacked(
         of LayoutBoxJustify:
           # justify when not wrapping or at least one remaining element
           if not wrap or (itemCount > 0 or expandRangeEnd != arrangeRangeEnd):
-            spacer = extraSpace / float(total - 1)
+            case n.boxFlags and
+              (LayoutBoxSpaceBetween or LayoutBoxSpaceAround or LayoutBoxSpaceEvenly)
+            of LayoutBoxSpaceAround:
+              spacer = extraSpace / float32(total)
+              extraMargin = spacer / 2
+            of LayoutBoxSpaceEvenly:
+              spacer = extraSpace / float32(total + 1)
+              extraMargin = spacer
+            else:
+              # space-between
+              spacer = extraSpace / float32(total - 1)
         of LayoutBoxStart:
           discard
         of LayoutBoxEnd:

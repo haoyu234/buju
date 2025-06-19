@@ -8,8 +8,9 @@ export vmath
 export LayoutNodeID, isNil, `$`
 export
   LayoutBoxWrap, LayoutBoxNoWrap, LayoutBoxStart, LayoutBoxMiddle, LayoutBoxEnd,
-  LayoutBoxJustify, LayoutBoxFree, LayoutBoxRow, LayoutBoxColumn, LayoutLeft, LayoutTop,
-  LayoutRight, LayoutBottom, LayoutHorizontalFill, LayoutVerticalFill, LayoutFill
+  LayoutBoxJustify, LayoutBoxSpaceBetween, LayoutBoxSpaceAround, LayoutBoxSpaceEvenly,
+  LayoutBoxFree, LayoutBoxRow, LayoutBoxColumn, LayoutLeft, LayoutTop, LayoutRight,
+  LayoutBottom, LayoutHorizontalFill, LayoutVerticalFill, LayoutFill
 
 type Layout* = distinct LayoutObj ## Layout context object.
 

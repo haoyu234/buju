@@ -10,7 +10,7 @@
     let root = 1;
     var g_scale = 1;
     var g_curElem = null;
-    var g_layout = { nodes: [], sorted: [] };
+    var g_layout = { nodes: [], caches: [] };
     var g_parents = {};
   </script>
   <style>
@@ -35,7 +35,7 @@
 
 <body style="position: relative">
   <div
-    style="width: 16em; position: fixed; left: 0; top: 0; padding: 1em 1em 0px; z-index: 1; background-color: rgba(255, 255, 255, 0.7);">
+    style="width: 18em; position: fixed; left: 0; top: 0; padding: 1em 1em 0px; z-index: 1; background-color: rgba(255, 255, 255, 0.7);">
     <div style="margin-bottom: 1.2em; width: 16em">
       <button onclick="importJson()">import</button>
       <button onclick="exportJson()">export</button>
@@ -45,7 +45,7 @@
       <button onclick="scaleChanged(5)">x5</button>
     </div>
 
-    <div style="margin-bottom: 1.2em; width: 15em">
+    <div style="margin-bottom: 1.2em; width: 18em">
       <div>
         <span>Size</span>
         <hr />
@@ -81,23 +81,23 @@
     </div>
 
     <div>
-      <div style="margin-bottom: 1.2em; width: 6em; display: inline-grid;">
+      <div style="margin-bottom: 1.2em; width: 9em; display: inline-grid;">
         <div>
           <span>Box</span>
           <hr />
         </div>
         <div>
-          <input onclick="stateChanged(this, true)" class="boxFlags" type="radio" id="g_layoutBoxFree"
+          <input onclick="stateChanged(this, 0x03)" class="boxFlags" type="radio" id="g_layoutBoxFree"
             name="LayoutBoxRowOrColumn" value="0x00" />
           <label for="g_layoutBoxFree">Free</label>
         </div>
         <div>
-          <input onclick="stateChanged(this, true)" class="boxFlags" type="radio" id="g_layoutBoxRow"
+          <input onclick="stateChanged(this, 0x03)" class="boxFlags" type="radio" id="g_layoutBoxRow"
             name="LayoutBoxRowOrColumn" value="0x02" />
           <label for="g_layoutBoxRow">Row</label>
         </div>
         <div>
-          <input onclick="stateChanged(this, true)" class="boxFlags" type="radio" id="g_layoutBoxColumn"
+          <input onclick="stateChanged(this, 0x03)" class="boxFlags" type="radio" id="g_layoutBoxColumn"
             name="LayoutBoxRowOrColumn" value="0x03" />
           <label for="g_layoutBoxColumn">Column</label>
         </div>
@@ -107,19 +107,34 @@
           <label for="g_layoutBoxWrap">Wrap</label>
         </div>
         <div>
-          <input onchange="stateChanged(this)" class="boxFlags" type="checkbox" id="g_layoutBoxStart"
+          <input onchange="stateChanged(this, 0x060)" class="boxFlags" type="checkbox" id="g_layoutBoxStart"
             name="LayoutBoxStart" value="0x008" />
           <label for="g_layoutBoxStart">Start</label>
         </div>
         <div>
-          <input onchange="stateChanged(this)" class="boxFlags" type="checkbox" id="g_layoutBoxEnd" name="LayoutBoxEnd"
+          <input onchange="stateChanged(this, 0x060)" class="boxFlags" type="checkbox" id="g_layoutBoxEnd" name="LayoutBoxEnd"
             value="0x010" />
           <label for="g_layoutBoxEnd">End</label>
         </div>
         <div>
-          <input onchange="stateChanged(this)" class="boxFlags" type="checkbox" id="g_layoutBoxJustify"
+          <input onchange="stateChanged(this, 0x060)" class="boxFlags" type="checkbox" id="g_layoutBoxJustify"
             name="LayoutBoxJustify" value="0x018" />
           <label for="g_layoutBoxJustify">Justify</label>
+        </div>
+        <div>
+          <input onchange="stateChanged(this, 0x078)" class="boxFlags" type="radio" id="g_layoutBoxJustifySpaceBetween"
+            name="LayoutBoxJustify" value="0x018" />
+          <label for="g_layoutBoxJustifySpaceBetween">SpaceBetween</label>
+        </div>
+        <div>
+          <input onchange="stateChanged(this, 0x078)" class="boxFlags" type="radio" id="g_layoutBoxJustifySpaceAround"
+            name="LayoutBoxJustify" value="0x038" />
+          <label for="g_layoutBoxJustifySpaceAround">SpaceAround</label>
+        </div>
+        <div>
+          <input onchange="stateChanged(this, 0x078)" class="boxFlags" type="radio" id="g_layoutBoxJustifySpaceEvenly"
+            name="LayoutBoxJustify" value="0x058" />
+          <label for="g_layoutBoxJustifySpaceEvenly">SpaceEvenly</label>
         </div>
       </div>
 
@@ -178,7 +193,7 @@
   <div style="
     position: relative;
     margin-top: 1em;
-    margin-left: 18em;
+    margin-left: 20em;
     ">
     <div id="g_nodes" style="border: 1px dotted gray;"></div>
   </div>
@@ -362,7 +377,7 @@
     function stateChanged(e, clearSomeBoxFlags) {
       var state = getElemState(g_curElem);
       if (clearSomeBoxFlags) {
-        state.boxFlags = state.boxFlags & ~0x03;
+        state.boxFlags = state.boxFlags & ~clearSomeBoxFlags;
       }
 
       if (e.checked) {
@@ -509,7 +524,7 @@
 
     function createNodeFromJson(json) {
       g_curElem = null;
-      g_layout = { nodes: [], sorted: [] };
+      g_layout = { nodes: [], caches: [] };
       g_parents = {};
 
       g_nodes.innerHTML = "";
