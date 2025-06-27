@@ -142,7 +142,7 @@ test2 "nested_boxes_1":
   let root = l.node()
   let mainChild = l.node()
 
-  l.setSize(root, vec2(70, float(numRowsWithHeight * 10 + 2 * 10)))
+  l.setSize(root, vec2(70, float32(numRowsWithHeight * 10 + 2 * 10)))
   l.setMargin(mainChild, vec4(10, 10, 10, 10))
   l.setBoxFlags(mainChild, LayoutBoxColumn)
   l.insertChild(root, mainChild)
@@ -180,7 +180,7 @@ test2 "nested_boxes_1":
   for i in 0 ..< 2:
     let col = l.node()
     let innerSizer = l.node()
-    l.setSize(innerSizer, vec2(25, float(10 * i)))
+    l.setSize(innerSizer, vec2(25, float32(10 * i)))
     l.setLayoutFlags(col, LayoutBottom)
     l.insertChild(col, innerSizer)
     l.insertChild(rows[2], col)
@@ -223,10 +223,10 @@ test2 "nested_boxes_1":
     check l.computed(rows[4]) == vec4(10, 40, 50, 10)
 
     for i in 0 ..< 5:
-      check l.computed(cols1[i]) == vec4(float(10 + 10 * i), 10, 10, 10)
+      check l.computed(cols1[i]) == vec4(float32(10 + 10 * i), 10, 10, 10)
 
     for i in 0 ..< 5:
-      check l.computed(cols2[i]) == vec4(float(10 + 10 * i), 20, 10, 10)
+      check l.computed(cols2[i]) == vec4(float32(10 + 10 * i), 20, 10, 10)
 
     check l.computed(cols3[0]) == vec4(10, 40, 25, 0)
     check l.computed(cols3[1]) == vec4(35, 30, 25, 10)
@@ -235,7 +235,7 @@ test2 "nested_boxes_1":
       check l.computed(cols4[i]) == vec4(25 + 10, 40, 0, 0)
 
     for i in 0 ..< 50:
-      check l.computed(cols5[i]) == vec4(float(10 + i), 40, 1, 10)
+      check l.computed(cols5[i]) == vec4(float32(10 + i), 40, 1, 10)
 
 test2 "deep_nest_1":
   const numItems = 500

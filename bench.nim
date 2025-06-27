@@ -20,7 +20,7 @@ proc nested(l: var Layout) =
     vec2(
       70,
       # 10 units extra size above and below for mainChild margin
-      float(numRowsWithHeight * 10 + 2 * 10),
+      float32(numRowsWithHeight * 10 + 2 * 10),
     ),
   )
 
@@ -70,7 +70,7 @@ proc nested(l: var Layout) =
     let col = l.node()
     let innerSizer = l.node()
     # only the second one will have height
-    l.setSize(innerSizer, vec2(25, float(10 * i)))
+    l.setSize(innerSizer, vec2(25, float32(10 * i)))
     # align to bottom, only should make a difference for first item
     l.setLayoutFlags(col, LayoutBottom)
     l.insertChild(col, innerSizer)
@@ -122,11 +122,11 @@ proc nested(l: var Layout) =
 
     for i in 0 ..< 5:
       # each of these should be 10 units wide, and stacked horizontally
-      check l.computed(cols1[i]) == vec4(float(10 + 10 * i), 10, 10, 10)
+      check l.computed(cols1[i]) == vec4(float32(10 + 10 * i), 10, 10, 10)
 
     # the cols in the second row are similar to first row
     for i in 0 ..< 5:
-      check l.computed(cols2[i]) == vec4(float(10 + 10 * i), 20, 10, 10)
+      check l.computed(cols2[i]) == vec4(float32(10 + 10 * i), 20, 10, 10)
 
     # leftmost (first of two items), aligned to bottom of row, 0 units tall
     check l.computed(cols3[0]) == vec4(10, 40, 25, 0)
@@ -140,7 +140,7 @@ proc nested(l: var Layout) =
 
     # these should all be 1 unit wide and 10 units tall
     for i in 0 ..< 50:
-      check l.computed(cols5[i]) == vec4(float(10 + i), 40, 1, 10)
+      check l.computed(cols5[i]) == vec4(float32(10 + i), 40, 1, 10)
 
 proc main() =
   let numRun = 100000
@@ -164,7 +164,7 @@ proc main() =
   echo fmt"nim version: {NimVersion}"
   echo fmt"times: {numRun}"
   echo fmt"total time: {us} usecs"
-  echo fmt"average time: {float(us) / float(numRun)} usecs"
+  echo fmt"average time: {float32(us) / float32(numRun)} usecs"
 
 try:
   main()
