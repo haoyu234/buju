@@ -11,12 +11,12 @@ type
   NodeAttr = object
     boxFlags*: uint8
     anchorFlags*: uint8
-    width*: float
-    height*: float
-    marginLeft*: float
-    marginTop*: float
-    marginRight*: float
-    marginBottom*: float
+    width*: float32
+    height*: float32
+    marginLeft*: float32
+    marginTop*: float32
+    marginRight*: float32
+    marginBottom*: float32
 
   NodeItem = object
     id*: int

@@ -22,7 +22,7 @@ test2 "wrap_row_1":
   for i in 0 ..< numItems:
     let x = i mod 5
     let y = i div 5
-    check l.computed(items[i]) == vec4(float(x * 10), float(y * 10), 10, 10)
+    check l.computed(items[i]) == vec4(float32(x * 10), float32(y * 10), 10, 10)
 
 test2 "wrap_row_2":
   let root = l.node()
@@ -43,7 +43,7 @@ test2 "wrap_row_2":
   for i in 0 ..< numItems:
     let x = i mod 5
     let y = i div 5
-    check l.computed(items[i]) == vec4(float(x * 10), float(y * 10), 10, 10)
+    check l.computed(items[i]) == vec4(float32(x * 10), float32(y * 10), 10, 10)
 
 test2 "wrap_row_3":
   let root = l.node()
@@ -64,7 +64,7 @@ test2 "wrap_row_3":
   for i in 0 ..< numItems:
     let x = i mod 5
     let y = i div 5
-    check l.computed(items[i]) == vec4(float(7 + x * 10), float(y * 10), 10, 10)
+    check l.computed(items[i]) == vec4(float32(7 + x * 10), float32(y * 10), 10, 10)
 
 test2 "wrap_row_4":
   let root = l.node()
@@ -89,7 +89,7 @@ test2 "wrap_row_4":
   for i in 0 ..< numItems:
     let x = i mod 5
     let y = i div 5
-    check l.computed(items[i]) == vec4(float(4 + x * 10), float(7 + y * 10), 10, 10)
+    check l.computed(items[i]) == vec4(float32(4 + x * 10), float32(7 + y * 10), 10, 10)
 
 test2 "wrap_row_5":
   let root = l.node()
@@ -110,7 +110,7 @@ test2 "wrap_row_5":
   for i in 0 ..< numItems:
     let x = i mod 5
     let y = i div 5
-    check l.computed(items[i]) == vec4(float(x * 11), float(y * 10), 10, 10)
+    check l.computed(items[i]) == vec4(float32(x * 11), float32(y * 10), 10, 10)
 
 test2 "wrap_column_1":
   let root = l.node()
@@ -131,7 +131,7 @@ test2 "wrap_column_1":
   for i in 0 ..< numItems:
     let x = i div 5
     let y = i mod 5
-    check l.computed(items[i]) == vec4(float(x * 10), float(y * 10), 10, 10)
+    check l.computed(items[i]) == vec4(float32(x * 10), float32(y * 10), 10, 10)
 
 test2 "wrap_column_2":
   let root = l.node()
@@ -152,7 +152,7 @@ test2 "wrap_column_2":
   for i in 0 ..< numItems:
     let x = i div 5
     let y = i mod 5
-    check l.computed(items[i]) == vec4(float(x * 10), float(y * 10), 10, 10)
+    check l.computed(items[i]) == vec4(float32(x * 10), float32(y * 10), 10, 10)
 
 test2 "wrap_column_3":
   let root = l.node()
@@ -173,7 +173,7 @@ test2 "wrap_column_3":
   for i in 0 ..< numItems:
     let x = i div 5
     let y = i mod 5
-    check l.computed(items[i]) == vec4(float(x * 10), float(7 + y * 10), 10, 10)
+    check l.computed(items[i]) == vec4(float32(x * 10), float32(7 + y * 10), 10, 10)
 
 test2 "wrap_column_4":
   let root = l.node()
@@ -198,7 +198,7 @@ test2 "wrap_column_4":
   for i in 0 ..< numItems:
     let x = i div 5
     let y = i mod 5
-    check l.computed(items[i]) == vec4(float(7 + x * 10), float(4 + y * 10), 10, 10)
+    check l.computed(items[i]) == vec4(float32(7 + x * 10), float32(4 + y * 10), 10, 10)
 
 test2 "anchor_right_margin1":
   let root = l.node()

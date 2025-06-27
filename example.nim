@@ -2,7 +2,7 @@ import unittest
 
 import src/buju
 
-proc drawXYWH(x, y, w, h: float) =
+proc drawXYWH(x, y, w, h: float32) =
   discard
 
 # Let's pretend we're creating some kind of GUI with a master list on the

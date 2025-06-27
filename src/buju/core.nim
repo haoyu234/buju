@@ -128,7 +128,7 @@ iterator children*(
 
 proc calcStackedSize(
     l: ptr LayoutObj, c: ptr LayoutCacheObj, dim: static[int]
-): float {.inline, raises: [].} =
+): float32 {.inline, raises: [].} =
   const wDim = dim + 2
 
   var needSize = 0f
@@ -141,7 +141,7 @@ proc calcStackedSize(
 
 proc calcOverlayedSize(
     l: ptr LayoutObj, c: ptr LayoutCacheObj, dim: static[int]
-): float {.inline, raises: [].} =
+): float32 {.inline, raises: [].} =
   const wDim = dim + 2
 
   var needSize = 0f
@@ -154,7 +154,7 @@ proc calcOverlayedSize(
 
 proc calcWrappedOverlayedSize(
     l: ptr LayoutObj, c: ptr LayoutCacheObj, dim: static[int]
-): float {.inline, raises: [].} =
+): float32 {.inline, raises: [].} =
   const wDim = dim + 2
 
   var needSize = 0f
@@ -171,7 +171,7 @@ proc calcWrappedOverlayedSize(
 
 proc calcWrappedStackedSize(
     l: ptr LayoutObj, c: ptr LayoutCacheObj, dim: static[int]
-): float {.inline, raises: [].} =
+): float32 {.inline, raises: [].} =
   const wDim = dim + 2
 
   var needSize = 0f
@@ -300,7 +300,7 @@ proc arrangeStacked(
 
     if extraSpace > 0:
       if count > 0:
-        filler = extraSpace / float(count)
+        filler = extraSpace / float32(count)
       elif total > 0:
         case n.boxFlags and LayoutBoxJustify
         of LayoutBoxJustify:
@@ -326,7 +326,7 @@ proc arrangeStacked(
     else:
       when not wrap:
         if extraSpace < 0 and squeezedCount > 0:
-          eater = extraSpace / float(squeezedCount)
+          eater = extraSpace / float32(squeezedCount)
 
     # distribute width among items
     var x = computed[dim]
@@ -391,7 +391,7 @@ proc arrangeOverlaySqueezedRange(
     l: ptr LayoutObj,
     dim: static[int],
     squeezedRangeBegin, arrangeRangeEnd: uint32,
-    offset, space: float,
+    offset, space: float32,
 ) {.inline, raises: [].} =
   const wDim = dim + 2
 
@@ -415,7 +415,7 @@ proc arrangeOverlaySqueezedRange(
 
 proc arrangeWrappedOverlaySqueezed(
     l: ptr LayoutObj, c: ptr LayoutCacheObj, dim: static[int]
-): float {.inline, raises: [].} =
+): float32 {.inline, raises: [].} =
   const wDim = dim + 2
 
   let n = c.node
