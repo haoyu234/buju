@@ -8,7 +8,7 @@ test2 "simple_fill":
   let child = l.node()
 
   l.setSize(root, vec2(30, 40))
-  l.setLayoutFlags(child, LayoutFill)
+  l.setAlign(child, {AlignLeft, AlignTop, AlignRight, AlignBottom})
   l.insertChild(root, child)
   l.compute(root)
 
@@ -45,10 +45,10 @@ test2 "column_even_fill":
   let child3 = l.node()
 
   l.setSize(root, vec2(50, 60))
-  l.setBoxFlags(root, LayoutBoxColumn)
-  l.setLayoutFlags(child1, LayoutFill)
-  l.setLayoutFlags(child2, LayoutFill)
-  l.setLayoutFlags(child3, LayoutFill)
+  l.setLayout(root, LayoutColumn)
+  l.setAlign(child1, {AlignLeft, AlignTop, AlignRight, AlignBottom})
+  l.setAlign(child2, {AlignLeft, AlignTop, AlignRight, AlignBottom})
+  l.setAlign(child3, {AlignLeft, AlignTop, AlignRight, AlignBottom})
 
   l.insertChild(root, child1)
   l.insertChild(root, child2)
@@ -67,10 +67,10 @@ test2 "row_even_fill":
   let child3 = l.node()
 
   l.setSize(root, vec2(90, 3))
-  l.setBoxFlags(root, LayoutBoxRow)
-  l.setLayoutFlags(child1, LayoutHorizontalFill or LayoutTop)
-  l.setLayoutFlags(child2, LayoutHorizontalFill)
-  l.setLayoutFlags(child3, LayoutHorizontalFill or LayoutBottom)
+  l.setLayout(root, LayoutRow)
+  l.setAlign(child1, {AlignLeft, AlignRight, AlignTop})
+  l.setAlign(child2, {AlignLeft, AlignRight})
+  l.setAlign(child3, {AlignLeft, AlignRight, AlignBottom})
 
   l.setSize(child1, vec2(0, 1))
   l.setSize(child2, vec2(0, 1))
@@ -92,12 +92,12 @@ test2 "fixed_and_fill":
   let fixed2 = l.node()
   let filler = l.node()
 
-  l.setBoxFlags(root, LayoutBoxColumn)
+  l.setLayout(root, LayoutColumn)
 
   l.setSize(root, vec2(50, 60))
   l.setSize(fixed1, vec2(50, 15))
   l.setSize(fixed2, vec2(50, 15))
-  l.setLayoutFlags(filler, LayoutFill)
+  l.setAlign(filler, {AlignLeft, AlignTop, AlignRight, AlignBottom})
 
   l.insertChild(root, fixed1)
   l.insertChild(root, filler)
@@ -115,10 +115,10 @@ test2 "simple_margins_1":
   let child2 = l.node()
   let child3 = l.node()
 
-  l.setBoxFlags(root, LayoutBoxColumn)
-  l.setLayoutFlags(child1, LayoutHorizontalFill)
-  l.setLayoutFlags(child2, LayoutFill)
-  l.setLayoutFlags(child3, LayoutHorizontalFill)
+  l.setLayout(root, LayoutColumn)
+  l.setAlign(child1, {AlignLeft, AlignRight})
+  l.setAlign(child2, {AlignLeft, AlignRight, AlignTop, AlignBottom})
+  l.setAlign(child3, {AlignLeft, AlignRight})
 
   l.setSize(root, vec2(100, 90))
 
@@ -144,66 +144,66 @@ test2 "nested_boxes_1":
 
   l.setSize(root, vec2(70, float32(numRowsWithHeight * 10 + 2 * 10)))
   l.setMargin(mainChild, vec4(10, 10, 10, 10))
-  l.setBoxFlags(mainChild, LayoutBoxColumn)
+  l.setLayout(mainChild, LayoutColumn)
   l.insertChild(root, mainChild)
-  l.setLayoutFlags(mainChild, LayoutFill)
+  l.setAlign(mainChild, {AlignLeft, AlignTop, AlignRight, AlignBottom})
 
-  var rows: array[numRows, LayoutNodeID]
+  var rows: array[numRows, NodeID]
 
   rows[0] = l.node()
-  l.setBoxFlags(rows[0], LayoutBoxRow)
-  l.setLayoutFlags(rows[0], LayoutFill)
+  l.setLayout(rows[0], LayoutRow)
+  l.setAlign(rows[0], {AlignLeft, AlignTop, AlignRight, AlignBottom})
 
-  var cols1: array[5, LayoutNodeID]
+  var cols1: array[5, NodeID]
   for i in 0 ..< 5:
     let col = l.node()
-    l.setLayoutFlags(col, LayoutFill)
+    l.setAlign(col, {AlignLeft, AlignTop, AlignRight, AlignBottom})
     l.insertChild(rows[0], col)
     cols1[i] = col
 
   rows[1] = l.node()
-  l.setBoxFlags(rows[1], LayoutBoxRow)
-  l.setLayoutFlags(rows[1], LayoutVerticalFill)
+  l.setLayout(rows[1], LayoutRow)
+  l.setAlign(rows[1], {AlignTop, AlignBottom})
 
-  var cols2: array[5, LayoutNodeID]
+  var cols2: array[5, NodeID]
   for i in 0 ..< 5:
     let col = l.node()
     l.setSize(col, vec2(10, 0))
-    l.setLayoutFlags(col, LayoutVerticalFill)
+    l.setAlign(col, {AlignTop, AlignBottom})
     l.insertChild(rows[1], col)
     cols2[i] = col
 
   rows[2] = l.node()
-  l.setBoxFlags(rows[2], LayoutBoxRow)
+  l.setLayout(rows[2], LayoutRow)
 
-  var cols3: array[2, LayoutNodeID]
+  var cols3: array[2, NodeID]
   for i in 0 ..< 2:
     let col = l.node()
     let innerSizer = l.node()
     l.setSize(innerSizer, vec2(25, float32(10 * i)))
-    l.setLayoutFlags(col, LayoutBottom)
+    l.setAlign(col, {AlignBottom})
     l.insertChild(col, innerSizer)
     l.insertChild(rows[2], col)
     cols3[i] = col
 
   rows[3] = l.node()
-  l.setBoxFlags(rows[3], LayoutBoxRow)
-  l.setLayoutFlags(rows[3], LayoutHorizontalFill)
+  l.setLayout(rows[3], LayoutRow)
+  l.setAlign(rows[3], {AlignLeft, AlignRight})
 
-  var cols4: array[99, LayoutNodeID]
+  var cols4: array[99, NodeID]
   for i in 0 ..< 99:
     let col = l.node()
     l.insertChild(rows[3], col)
     cols4[i] = col
 
   rows[4] = l.node()
-  l.setBoxFlags(rows[4], LayoutBoxRow)
-  l.setLayoutFlags(rows[4], LayoutFill)
+  l.setLayout(rows[4], LayoutRow)
+  l.setAlign(rows[4], {AlignLeft, AlignTop, AlignRight, AlignBottom})
 
-  var cols5: array[50, LayoutNodeID]
+  var cols5: array[50, NodeID]
   for i in 0 ..< 50:
     let col = l.node()
-    l.setLayoutFlags(col, LayoutFill)
+    l.setAlign(col, {AlignLeft, AlignTop, AlignRight, AlignBottom})
     l.insertChild(rows[4], col)
     cols5[i] = col
 
@@ -258,7 +258,7 @@ test2 "many_children_1":
 
   let root = l.node()
   l.setSize(root, vec2(1, 0))
-  l.setBoxFlags(root, LayoutBoxColumn)
+  l.setLayout(root, LayoutColumn)
 
   let node1 = l.node()
   l.setSize(node1, vec2(1, 1))
@@ -277,23 +277,23 @@ test2 "child_align_1":
   let root = l.node()
   l.setSize(root, vec2(50, 50))
 
-  template alignBox(n, flags) =
+  template alignBox(n, align) =
     let n = l.node()
     l.setSize(n, vec2(10, 10))
-    l.setLayoutFlags(n, flags)
+    l.setAlign(n, align)
     l.insertChild(root, n)
 
-  alignBox(child1, LayoutTop or LayoutLeft)
-  alignBox(child2, LayoutTop or LayoutRight)
-  alignBox(child3, LayoutTop)
+  alignBox(child1, {AlignTop, AlignLeft})
+  alignBox(child2, {AlignTop, AlignRight})
+  alignBox(child3, {AlignTop})
 
-  alignBox(child4, LayoutLeft)
-  alignBox(child5, LayoutRight)
-  alignBox(child6, 0)
+  alignBox(child4, {AlignLeft})
+  alignBox(child5, {AlignRight})
+  alignBox(child6, {})
 
-  alignBox(child7, LayoutBottom or LayoutLeft)
-  alignBox(child8, LayoutBottom or LayoutRight)
-  alignBox(child9, LayoutBottom)
+  alignBox(child7, {AlignBottom, AlignLeft})
+  alignBox(child8, {AlignBottom, AlignRight})
+  alignBox(child9, {AlignBottom})
 
   l.compute(root)
 
@@ -313,19 +313,19 @@ test2 "child_align_2":
   let root = l.node()
   l.setSize(root, vec2(50, 50))
 
-  template alignBox(n, flags) =
+  template alignBox(n, align) =
     let n = l.node()
     l.setSize(n, vec2(10, 10))
-    l.setLayoutFlags(n, flags)
+    l.setAlign(n, align)
     l.insertChild(root, n)
 
-  alignBox(child1, LayoutTop or LayoutHorizontalFill)
-  alignBox(child2, LayoutHorizontalFill)
-  alignBox(child3, LayoutBottom or LayoutHorizontalFill)
+  alignBox(child1, {AlignLeft, AlignRight, AlignTop})
+  alignBox(child2, {AlignLeft, AlignRight})
+  alignBox(child3, {AlignLeft, AlignRight, AlignBottom})
 
-  alignBox(child4, LayoutLeft or LayoutVerticalFill)
-  alignBox(child5, LayoutRight or LayoutVerticalFill)
-  alignBox(child6, LayoutVerticalFill)
+  alignBox(child4, {AlignTop, AlignBottom, AlignLeft})
+  alignBox(child5, {AlignTop, AlignBottom, AlignRight})
+  alignBox(child6, {AlignTop, AlignBottom})
 
   l.compute(root)
 

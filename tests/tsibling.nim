@@ -5,7 +5,7 @@ import buju
 import buju/core
 
 proc check2(
-    l: ptr LayoutObj, n, firstChild, lastChild, prevSibling, nextSibling: LayoutNodeID
+    l: ptr Context, n, firstChild, lastChild, prevSibling, nextSibling: NodeID
 ) =
   let n = l.node(n)
   check n.firstChild == firstChild
@@ -14,7 +14,7 @@ proc check2(
   check n.nextSibling == nextSibling
 
 test "insertChild":
-  var l: Layout
+  var l: Context
   let p = distinctBase(l).addr
 
   let root = l.node()
@@ -43,7 +43,7 @@ test "insertChild":
   check2(p, node3, NIL, NIL, node2, NIL)
 
 test "removeChild":
-  var l: Layout
+  var l: Context
   let p = distinctBase(l).addr
 
   let root = l.node()
