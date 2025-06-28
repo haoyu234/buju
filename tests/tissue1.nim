@@ -7,7 +7,8 @@ test2 "issue_1":
   let root = l.node()
   l.setSize(root, vec2(200, 200))
   l.setMargin(root, vec4(50, 50, 50, 50))
-  l.setBoxFlags(root, LayoutBoxWrap or LayoutBoxColumn)
+  l.setLayout(root, LayoutColumn)
+  l.setWrap(root, WrapWrap)
 
   let node2 = l.node()
   l.setSize(node2, vec2(50, 50))

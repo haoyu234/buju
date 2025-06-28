@@ -10,7 +10,7 @@ proc drawXYWH(x, y, w, h: float32) =
 
 proc main() =
   # We first need one of these
-  var l = default(Layout)
+  var l = default(Context)
 
   # Create our root node. Nodes are just 2D boxes.
   let root = l.node()
@@ -21,7 +21,7 @@ proc main() =
 
   # Set our root node to arrange its children in a row, left-to-right, in the
   # order they are inserted.
-  l.setBoxFlags(root, LayoutBoxRow)
+  l.setLayout(root, LayoutRow)
 
   # Create the node for our master list.
   let masterList = l.node()
@@ -33,11 +33,11 @@ proc main() =
 
   # We set our node's behavior within its parent to desire filling up available
   # vertical space.
-  l.setLayoutFlags(masterList, LayoutVerticalFill)
+  l.setAlign(masterList, {AlignTop, AlignBottom})
 
   # And we set it so that it will layout its children in a column,
   # top-to-bottom, in the order they are inserted.
-  l.setBoxFlags(masterList, LayoutBoxColumn)
+  l.setLayout(masterList, LayoutColumn)
 
   let contentView = l.node()
   l.insertChild(root, contentView)
@@ -47,7 +47,7 @@ proc main() =
   #
   # We could just set LayoutFill here instead of bitwise-or'ing `LayoutHorizontalFill` and
   # `LayoutVerticalFill`, but I want to demonstrate that this is how you combine flags.
-  l.setLayoutFlags(contentView, LayoutHorizontalFill or LayoutVerticalFill)
+  l.setAlign(contentView, {AlignLeft, AlignTop, AlignRight, AlignBottom})
 
   # Normally at this point, we would probably want to create items for our
   # master list and our content view and insert them. This is just a dumb fake

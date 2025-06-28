@@ -8,7 +8,7 @@ test2 "upstream_issue15":
   l.setSize(root, vec2(1, 100))
 
   let row = l.node()
-  l.setBoxFlags(row, LayoutBoxRow)
+  l.setLayout(row, LayoutRow)
   l.insertChild(root, row)
 
   let child = l.node()
