@@ -5,7 +5,7 @@ import std/strformat
 
 import src/buju
 
-proc nested(l: var Layout) =
+proc nested(l: var Context) =
   const numRows = 5
   # one of the rows is "fake" and will have 0 units tall height
   const numRowsWithHeight = numRows - 1
@@ -25,64 +25,64 @@ proc nested(l: var Layout) =
   )
 
   l.setMargin(mainChild, vec4(10, 10, 10, 10))
-  l.setBoxFlags(mainChild, LayoutBoxColumn)
+  l.setLayout(mainChild, LayoutColumn)
   l.insertChild(root, mainChild)
-  l.setLayoutFlags(mainChild, LayoutFill)
+  l.setAlign(mainChild, {AlignLeft, AlignTop, AlignRight, AlignBottom})
 
-  var rows = default(array[numRows, LayoutNodeID])
+  var rows = default(array[numRows, NodeID])
 
   # auto-filling columns-in-row, each one should end up being
   # 10 units wide
   rows[0] = l.node()
-  l.setBoxFlags(rows[0], LayoutBoxRow)
-  l.setLayoutFlags(rows[0], LayoutFill)
+  l.setLayout(rows[0], LayoutRow)
+  l.setAlign(rows[0], {AlignLeft, AlignTop, AlignRight, AlignBottom})
 
-  var cols1 = default(array[5, LayoutNodeID])
+  var cols1 = default(array[5, NodeID])
 
   # hmm so both the row and its child columns need to be set to
   # fill? which means mainChild also needs to be set to fill?
   for i in 0 ..< 5:
     let col = l.node()
     # fill empty space
-    l.setLayoutFlags(col, LayoutFill)
+    l.setAlign(col, {AlignLeft, AlignTop, AlignRight, AlignBottom})
     l.insertChild(rows[0], col)
     cols1[i] = col
 
   rows[1] = l.node()
-  l.setBoxFlags(rows[1], LayoutBoxRow)
-  l.setLayoutFlags(rows[1], LayoutVerticalFill)
+  l.setLayout(rows[1], LayoutRow)
+  l.setAlign(rows[1], {AlignTop, AlignBottom})
 
-  var cols2 = default(array[5, LayoutNodeID])
+  var cols2 = default(array[5, NodeID])
   for i in 0 ..< 5:
     let col = l.node()
     # fixed-size horizontally, fill vertically
     l.setSize(col, vec2(10, 0))
-    l.setLayoutFlags(col, LayoutVerticalFill)
+    l.setAlign(col, {AlignTop, AlignBottom})
     l.insertChild(rows[1], col)
     cols2[i] = col
 
   # these columns have an inner item which sizes them
   rows[2] = l.node()
-  l.setBoxFlags(rows[2], LayoutBoxRow)
+  l.setLayout(rows[2], LayoutRow)
 
-  var cols3 = default(array[2, LayoutNodeID])
+  var cols3 = default(array[2, NodeID])
   for i in 0 ..< 2:
     let col = l.node()
     let innerSizer = l.node()
     # only the second one will have height
     l.setSize(innerSizer, vec2(25, float32(10 * i)))
     # align to bottom, only should make a difference for first item
-    l.setLayoutFlags(col, LayoutBottom)
+    l.setAlign(col, {AlignBottom})
     l.insertChild(col, innerSizer)
     l.insertChild(rows[2], col)
     cols3[i] = col
 
   # row 4 should end up being 0 units tall after layout
   rows[3] = l.node()
-  l.setBoxFlags(rows[3], LayoutBoxRow)
-  l.setLayoutFlags(rows[3], LayoutHorizontalFill)
+  l.setLayout(rows[3], LayoutRow)
+  l.setAlign(rows[3], {AlignLeft, AlignRight})
 
-  var cols4 = default(array[99, LayoutNodeID])
+  var cols4 = default(array[99, NodeID])
   for i in 0 ..< 99:
     let col = l.node()
     l.insertChild(rows[3], col)
@@ -91,13 +91,13 @@ proc nested(l: var Layout) =
   # row 5 should be 10 pixels tall after layout, and each of
   # its columns should be 1 pixel wide
   rows[4] = l.node()
-  l.setBoxFlags(rows[4], LayoutBoxRow)
-  l.setLayoutFlags(rows[4], LayoutFill)
+  l.setLayout(rows[4], LayoutRow)
+  l.setAlign(rows[4], {AlignLeft, AlignTop, AlignRight, AlignBottom})
 
-  var cols5 = default(array[50, LayoutNodeID])
+  var cols5 = default(array[50, NodeID])
   for i in 0 ..< 50:
     let col = l.node()
-    l.setLayoutFlags(col, LayoutFill)
+    l.setAlign(col, {AlignLeft, AlignTop, AlignRight, AlignBottom})
     l.insertChild(rows[4], col)
     cols5[i] = col
 
@@ -145,7 +145,7 @@ proc nested(l: var Layout) =
 proc main() =
   let numRun = 100000
 
-  var l = default(Layout)
+  var l = default(Context)
   var total = default(MonoTime)
 
   for i in 0 ..< numRun:

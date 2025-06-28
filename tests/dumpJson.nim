@@ -1,5 +1,4 @@
 import std/json
-import std/typetraits
 
 import buju
 import buju/core
@@ -9,8 +8,11 @@ template getAddr(body): auto =
 
 type
   NodeAttr = object
-    boxFlags*: uint8
-    anchorFlags*: uint8
+    layout*: uint32
+    wrap*: uint32
+    mainAxisAlign*: uint32
+    crossAxisAlign*: uint32
+    align*: uint32
     width*: float32
     height*: float32
     marginLeft*: float32
@@ -24,7 +26,7 @@ type
     state*: NodeAttr
 
 proc recursionDump(
-    l: ptr LayoutObj, id, parent: LayoutNodeID, nodes: var seq[NodeItem]
+    l: ptr Context, id, parent: NodeID, nodes: var seq[NodeItem]
 ) =
   let n = l.node(id)
 
@@ -33,8 +35,14 @@ proc recursionDump(
     item.id = int(id)
     item.parent = int(parent)
 
-    item.state.boxFlags = uint8(n.boxFlags)
-    item.state.anchorFlags = uint8(n.anchorFlags)
+    item.state.layout = uint32(n.layout)
+    item.state.wrap = uint32(n.wrap)
+    item.state.mainAxisAlign = uint32(n.mainAxisAlign)
+    item.state.crossAxisAlign = uint32(n.crossAxisAlign)
+
+    for a in n.align:
+      item.state.align = item.state.align or uint32(a)
+
     item.state.width = n.size[0]
     item.state.height = n.size[1]
     item.state.marginLeft = n.margin[0]
@@ -51,8 +59,8 @@ proc recursionDump(
     let child = l.node(childID)
     childID = child.nextSibling
 
-proc dumpJson*(l: Layout, id: LayoutNodeID): string =
-  let l = distinctBase(l).getAddr
+proc dumpJson*(l: Context, id: NodeID): string =
+  let l = l.getAddr
 
   var nodes = newSeqOfCap[NodeItem](l.nodes.len)
   l.recursionDump(id, NIL, nodes)

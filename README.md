@@ -6,32 +6,33 @@ It has fixed several bugs left over from the original implementation and optimiz
 ```nim
 import buju
 
-var l = default(Layout)
+var l = default(Context)
 
 let root = l.node()
+l.setLayout(LayoutFree)
 l.setSize(root, vec2(50, 50))
 
-template alignBox(n, flags) =
+template alignBox(n, align) =
   let n = l.node()
   l.setSize(n, vec2(10, 10))
-  l.setLayoutFlags(n, flags)
+  l.setAlign(n, align)
   l.insertChild(root, n)
 
 # |2|4|3|
 # |5|7|6|
 # |8|10|9|
 
-alignBox(node2, LayoutTop or LayoutLeft)
-alignBox(node3, LayoutTop or LayoutRight)
-alignBox(node4, LayoutTop)
+alignBox(node2, {AlignTop, AlignLeft})
+alignBox(node3, {AlignTop, AlignRight})
+alignBox(node4, {AlignTop})
 
-alignBox(node5, LayoutLeft)
-alignBox(node6, LayoutRight)
-alignBox(node7, 0)
+alignBox(node5, {AlignLeft})
+alignBox(node6, {AlignRight})
+alignBox(node7, {})
 
-alignBox(node8, LayoutBottom or LayoutLeft)
-alignBox(node9, LayoutBottom or LayoutRight)
-alignBox(node10, LayoutBottom)
+alignBox(node8, {AlignBottom, AlignLeft})
+alignBox(node9, {AlignBottom, AlignRight})
+alignBox(node10,{AlignBottom})
 
 l.compute(root)
 
@@ -48,6 +49,3 @@ check l.computed(node9) == vec4(40, 40, 10, 10)
 check l.computed(node10) == vec4(20, 40, 10, 10)
 
 ```
-
-The [online editor](https://htmlpreview.github.io/?https://github.com/haoyu234/buju/blob/main/assets/demo.html) is in `assets/demo.html`, and here is the output:
-![assets/demo.png](https://github.com/haoyu234/buju/raw/main/assets/demo.png)
