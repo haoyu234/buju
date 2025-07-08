@@ -112,7 +112,8 @@ proc setBoxFlags*(
     l = distinctBase(l).getAddr
     n = l.node(nodeID)
 
-  n.boxFlags = uint8(boxFlags)
+  if not n.isNil:
+    n.boxFlags = uint8(boxFlags)
 
 proc setLayoutFlags*(
     l: var Layout, nodeID: LayoutNodeID, layoutFlags: int
@@ -125,7 +126,8 @@ proc setLayoutFlags*(
     l = distinctBase(l).getAddr
     n = l.node(nodeID)
 
-  n.anchorFlags = uint8(layoutFlags)
+  if not n.isNil:
+    n.anchorFlags = uint8(layoutFlags)
 
 proc setSize*(l: var Layout, nodeID: LayoutNodeID, size: Vec2) {.inline, raises: [].} =
   ## Sets the size of an node. 
@@ -136,7 +138,8 @@ proc setSize*(l: var Layout, nodeID: LayoutNodeID, size: Vec2) {.inline, raises:
     l = distinctBase(l).getAddr
     n = l.node(nodeID)
 
-  n.size = size
+  if not n.isNil:
+    n.size = size
 
 proc setMargin*(
     l: var Layout, nodeID: LayoutNodeID, margin: Vec4
@@ -149,7 +152,8 @@ proc setMargin*(
     l = distinctBase(l).getAddr
     n = l.node(nodeID)
 
-  n.margin = margin
+  if not n.isNil:
+    n.margin = margin
 
 proc insertChild*(
     l: var Layout, parentID, childID: LayoutNodeID
@@ -161,16 +165,16 @@ proc insertChild*(
   let
     l = distinctBase(l).getAddr
     p = l.node(parentID)
+    c = l.node(childID)
 
-  if not p.lastChild.isNil:
-    let lastChild = l.lastChild(p)
-    lastChild.nextSibling = childID
+  if not p.isNil and not c.isNil:
+    let lastChild = l.node(p.lastChild)
+    if not lastChild.isNil:
+      lastChild.nextSibling = childID
 
-    let node = l.node(childID)
-    node.prevSibling = p.lastChild
-    p.lastChild = childID
-  else:
-    p.firstChild = childID
+      c.prevSibling = p.lastChild
+    else:
+      p.firstChild = childID
     p.lastChild = childID
 
 proc removeChild*(
@@ -180,41 +184,30 @@ proc removeChild*(
 
   let
     l = distinctBase(l).getAddr
-    c = l.node(childID)
     p = l.node(parentID)
+    c = l.node(childID)
 
-  let
-    p2 = c.prevSibling
-    n2 = c.nextSibling
+  if not p.isNil and not c.isNil:
+    if c.nextSibling == c.prevSibling:
+      p.lastChild = NIL
+      p.firstChild = NIL
+    else:
+      if p.lastChild == childID:
+        p.lastChild = c.prevSibling
 
-  if n2 == p2:
-    if not n2.isNil:
-      c.prevSibling = NIL
-      c.nextSibling = NIL
+      if p.firstChild == childID:
+        p.firstChild = c.nextSibling
 
-      let n = l.node(n2)
-      n.prevSibling = NIL
-      n.nextSibling = NIL
+      let nextSibling = l.node(c.nextSibling)
+      if not nextSibling.isNil:
+        nextSibling.prevSibling = c.prevSibling
 
-    p.lastChild = NIL
-    p.firstChild = NIL
-    return
+      let prevSibling = l.node(c.prevSibling)
+      if not prevSibling.isNil:
+        prevSibling.nextSibling = c.nextSibling
 
-  if p.firstChild == childID:
-    p.firstChild = n2
-
-  if p.lastChild == childID:
-    p.lastChild = p2
-
-  if not n2.isNil:
-    let n = l.node(n2)
-    n.prevSibling = p2
-    c.nextSibling = NIL
-
-  if not p2.isNil:
-    let n = l.node(p2)
-    n.nextSibling = n2
     c.prevSibling = NIL
+    c.nextSibling = NIL
 
 proc compute*(l: var Layout, nodeID: LayoutNodeID) {.inline, raises: [].} =
   ## Running the layout calculations from a specific node is useful if you want
@@ -240,7 +233,8 @@ proc compute*(l: var Layout, nodeID: LayoutNodeID) {.inline, raises: [].} =
     l = distinctBase(l).getAddr
     n = l.node(nodeID)
 
-  l.compute(n)
+  if not n.isNil:
+    l.compute(n)
 
 proc computed*(l: Layout, nodeID: LayoutNodeID): Vec4 {.inline, raises: [].} =
   ## Returns the calculated rectangle of an node. This is only valid after calling
@@ -253,4 +247,5 @@ proc computed*(l: Layout, nodeID: LayoutNodeID): Vec4 {.inline, raises: [].} =
     l = distinctBase(l).getAddr
     n = l.node(nodeID)
 
-  n.computed
+  if not n.isNil:
+    return n.computed

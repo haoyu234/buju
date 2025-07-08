@@ -80,7 +80,9 @@ proc isNil*(id: LayoutNodeID): bool {.inline, raises: [].} =
 proc node*(
     l: ptr LayoutObj, id: LayoutNodeID
 ): ptr LayoutNodeObj {.inline, raises: [].} =
-  l.nodes[uint(id) - 1].addr
+  let idx = int32(id) - 1
+  if idx >= 0 and idx < len(l.nodes):
+    return l.nodes[idx].addr
 
 proc model(n: ptr LayoutNodeObj): int {.inline, raises: [].} =
   int(n.boxFlags and 0x7)
