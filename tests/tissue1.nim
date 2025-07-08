@@ -1,27 +1,27 @@
 import unittest
 
 import buju
-import ./utils
+import vmath
 
-test2 "issue_1":
-  let root = l.node()
-  l.setSize(root, vec2(200, 200))
-  l.setMargin(root, vec4(50, 50, 50, 50))
-  l.setLayout(root, LayoutColumn)
-  l.setWrap(root, WrapWrap)
+test "issue_1":
+  let root = Node()
+  root.size = vec2(200, 200)
+  root.margin = vec4(50, 50, 50, 50)
+  root.wrap = WrapWrap
+  root.layout = LayoutColumn
 
-  let node2 = l.node()
-  l.setSize(node2, vec2(50, 50))
-  l.setMargin(node2, vec4(5, 5, 5, 5))
-  l.insertChild(root, node2)
+  let node1 = Node()
+  node1.size = vec2(50, 50)
+  node1.margin = vec4(5, 5, 5, 5)
+  root.insertChild(node1)
 
-  let node3 = l.node()
-  l.setSize(node3, vec2(50, 50))
-  l.setMargin(node3, vec4(5, 5, 5, 5))
-  l.insertChild(node2, node3)
+  let node2 = Node()
+  node2.size = vec2(50, 50)
+  node2.margin = vec4(5, 5, 5, 5)
+  node1.insertChild(node2)
 
-  l.compute(root)
+  compute(root)
 
-  check l.computed(root) == vec4(50, 50, 60, 200)
-  check l.computed(node2) == vec4(55, 125, 50, 50)
-  check l.computed(node3) == vec4(60, 130, 50, 50)
+  check root.computed == vec4(50, 50, 60, 200)
+  check node1.computed == vec4(55, 125, 50, 50)
+  check node2.computed == vec4(60, 130, 50, 50)

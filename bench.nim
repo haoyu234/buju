@@ -3,6 +3,7 @@ import unittest
 import std/monotimes
 import std/strformat
 
+import vmath
 import src/buju
 
 proc nested(l: var Context) =
@@ -12,145 +13,142 @@ proc nested(l: var Context) =
 
   # mainChild is a column that contains rows, and those rows
   # will contain columns.
-  let root = l.node()
-  let mainChild = l.node()
+  let root = Node()
+  let mainChild = Node()
 
-  l.setSize(
-    root,
-    vec2(
-      70,
-      # 10 units extra size above and below for mainChild margin
-      float32(numRowsWithHeight * 10 + 2 * 10),
-    ),
+  root.size = vec2(
+    70,
+    # 10 units extra size above and below for mainChild margin
+    float32(numRowsWithHeight * 10 + 2 * 10),
   )
 
-  l.setMargin(mainChild, vec4(10, 10, 10, 10))
-  l.setLayout(mainChild, LayoutColumn)
-  l.insertChild(root, mainChild)
-  l.setAlign(mainChild, {AlignLeft, AlignTop, AlignRight, AlignBottom})
+  mainChild.margin = vec4(10, 10, 10, 10)
+  mainChild.layout = LayoutColumn
+  mainChild.align = {AlignLeft, AlignTop, AlignRight, AlignBottom}
 
-  var rows = default(array[numRows, NodeID])
+  root.insertChild(mainChild)
+
+  var rows = default(array[numRows, Node])
 
   # auto-filling columns-in-row, each one should end up being
   # 10 units wide
-  rows[0] = l.node()
-  l.setLayout(rows[0], LayoutRow)
-  l.setAlign(rows[0], {AlignLeft, AlignTop, AlignRight, AlignBottom})
+  rows[0] = Node()
+  rows[0].layout = LayoutRow
+  rows[0].align = {AlignLeft, AlignTop, AlignRight, AlignBottom}
 
-  var cols1 = default(array[5, NodeID])
+  var cols1 = default(array[5, Node])
 
   # hmm so both the row and its child columns need to be set to
   # fill? which means mainChild also needs to be set to fill?
   for i in 0 ..< 5:
-    let col = l.node()
+    let col = Node()
     # fill empty space
-    l.setAlign(col, {AlignLeft, AlignTop, AlignRight, AlignBottom})
-    l.insertChild(rows[0], col)
+    col.align = {AlignLeft, AlignTop, AlignRight, AlignBottom}
+    rows[0].insertChild(col)
     cols1[i] = col
 
-  rows[1] = l.node()
-  l.setLayout(rows[1], LayoutRow)
-  l.setAlign(rows[1], {AlignTop, AlignBottom})
+  rows[1] = Node()
+  rows[1].layout = LayoutRow
+  rows[1].align = {AlignTop, AlignBottom}
 
-  var cols2 = default(array[5, NodeID])
+  var cols2 = default(array[5, Node])
   for i in 0 ..< 5:
-    let col = l.node()
+    let col = Node()
     # fixed-size horizontally, fill vertically
-    l.setSize(col, vec2(10, 0))
-    l.setAlign(col, {AlignTop, AlignBottom})
-    l.insertChild(rows[1], col)
+    col.size = vec2(10, 0)
+    col.align = {AlignTop, AlignBottom}
+    rows[1].insertChild(col)
     cols2[i] = col
 
   # these columns have an inner item which sizes them
-  rows[2] = l.node()
-  l.setLayout(rows[2], LayoutRow)
+  rows[2] = Node()
+  rows[2].layout = LayoutRow
 
-  var cols3 = default(array[2, NodeID])
+  var cols3 = default(array[2, Node])
   for i in 0 ..< 2:
-    let col = l.node()
-    let innerSizer = l.node()
+    let col = Node()
+    let innerSizer = Node()
     # only the second one will have height
-    l.setSize(innerSizer, vec2(25, float32(10 * i)))
+    innerSizer.size = vec2(25, float32(10 * i))
     # align to bottom, only should make a difference for first item
-    l.setAlign(col, {AlignBottom})
-    l.insertChild(col, innerSizer)
-    l.insertChild(rows[2], col)
+    col.align = {AlignBottom}
+    col.insertChild(innerSizer)
+    rows[2].insertChild(col)
     cols3[i] = col
 
   # row 4 should end up being 0 units tall after layout
-  rows[3] = l.node()
-  l.setLayout(rows[3], LayoutRow)
-  l.setAlign(rows[3], {AlignLeft, AlignRight})
+  rows[3] = Node()
+  rows[3].layout = LayoutRow
+  rows[3].align = {AlignLeft, AlignRight}
 
-  var cols4 = default(array[99, NodeID])
+  var cols4 = default(array[99, Node])
   for i in 0 ..< 99:
-    let col = l.node()
-    l.insertChild(rows[3], col)
+    let col = Node()
+    rows[3].insertChild(col)
     cols4[i] = col
 
   # row 5 should be 10 pixels tall after layout, and each of
   # its columns should be 1 pixel wide
-  rows[4] = l.node()
-  l.setLayout(rows[4], LayoutRow)
-  l.setAlign(rows[4], {AlignLeft, AlignTop, AlignRight, AlignBottom})
+  rows[4] = Node()
+  rows[4].layout = LayoutRow
+  rows[4].align = {AlignLeft, AlignTop, AlignRight, AlignBottom}
 
-  var cols5 = default(array[50, NodeID])
+  var cols5 = default(array[50, Node])
   for i in 0 ..< 50:
-    let col = l.node()
-    l.setAlign(col, {AlignLeft, AlignTop, AlignRight, AlignBottom})
-    l.insertChild(rows[4], col)
+    let col = Node()
+    col.align = {AlignLeft, AlignTop, AlignRight, AlignBottom}
+    rows[4].insertChild(col)
     cols5[i] = col
 
   for i in 0 ..< numRows:
-    l.insertChild(mainChild, rows[i])
+    mainChild.insertChild(rows[i])
 
   # repeat the run and tests multiple times to make sure we get the expected
   # results each time. 
   for i in 0 ..< 5:
     l.compute(root)
 
-    check l.computed(mainChild) == vec4(10, 10, 50, 40)
+    check mainChild.computed == vec4(10, 10, 50, 40)
 
     # these rows should all be 10 units in height
-    check l.computed(rows[0]) == vec4(10, 10, 50, 10)
-    check l.computed(rows[1]) == vec4(10, 20, 50, 10)
-    check l.computed(rows[2]) == vec4(10, 30, 50, 10)
+    check rows[0].computed == vec4(10, 10, 50, 10)
+    check rows[1].computed == vec4(10, 20, 50, 10)
+    check rows[2].computed == vec4(10, 30, 50, 10)
 
     # this row should have 0 height
-    check l.computed(rows[3]) == vec4(10, 40, 50, 0)
-    check l.computed(rows[4]) == vec4(10, 40, 50, 10)
+    check rows[3].computed == vec4(10, 40, 50, 0)
+    check rows[4].computed == vec4(10, 40, 50, 10)
 
     for i in 0 ..< 5:
       # each of these should be 10 units wide, and stacked horizontally
-      check l.computed(cols1[i]) == vec4(float32(10 + 10 * i), 10, 10, 10)
+      check cols1[i].computed == vec4(float32(10 + 10 * i), 10, 10, 10)
 
     # the cols in the second row are similar to first row
     for i in 0 ..< 5:
-      check l.computed(cols2[i]) == vec4(float32(10 + 10 * i), 20, 10, 10)
+      check cols2[i].computed == vec4(float32(10 + 10 * i), 20, 10, 10)
 
     # leftmost (first of two items), aligned to bottom of row, 0 units tall
-    check l.computed(cols3[0]) == vec4(10, 40, 25, 0)
+    check cols3[0].computed == vec4(10, 40, 25, 0)
 
     # rightmost (second of two items), same height as row, which is 10 units tall
-    check l.computed(cols3[1]) == vec4(35, 30, 25, 10)
+    check cols3[1].computed == vec4(35, 30, 25, 10)
 
     # these should all have size 0 and be in the middle of the row
     for i in 0 ..< 99:
-      check l.computed(cols4[i]) == vec4(25 + 10, 40, 0, 0)
+      check cols4[i].computed == vec4(25 + 10, 40, 0, 0)
 
     # these should all be 1 unit wide and 10 units tall
     for i in 0 ..< 50:
-      check l.computed(cols5[i]) == vec4(float32(10 + i), 40, 1, 10)
+      check cols5[i].computed == vec4(float32(10 + i), 40, 1, 10)
 
 proc main() =
   let numRun = 100000
 
-  var l = default(Context)
-  var total = default(MonoTime)
+  var
+    l = default(Context)
+    total = default(MonoTime)
 
   for i in 0 ..< numRun:
-    l.clear()
-
     let a = getMonoTime()
 
     nested(l)

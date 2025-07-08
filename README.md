@@ -6,17 +6,15 @@ It has fixed several bugs left over from the original implementation and optimiz
 ```nim
 import buju
 
-var l = default(Context)
+let root = Node()
+root.layout = LayoutFree
+root.size = vec2(50, 50)
 
-let root = l.node()
-l.setLayout(LayoutFree)
-l.setSize(root, vec2(50, 50))
-
-template alignBox(n, align) =
-  let n = l.node()
-  l.setSize(n, vec2(10, 10))
-  l.setAlign(n, align)
-  l.insertChild(root, n)
+template alignBox(n, align2) =
+  let n = Node()
+  n.size = vec2(10, 10)
+  n.align = align2
+  root.insertChild(n)
 
 # |2|4|3|
 # |5|7|6|
@@ -34,18 +32,19 @@ alignBox(node8, {AlignBottom, AlignLeft})
 alignBox(node9, {AlignBottom, AlignRight})
 alignBox(node10,{AlignBottom})
 
+var l = default(Context)
 l.compute(root)
 
-check l.computed(node2) == vec4(0, 0, 10, 10)
-check l.computed(node3) == vec4(40, 0, 10, 10)
-check l.computed(node4) == vec4(20, 0, 10, 10)
+check node2.computed == vec4(0, 0, 10, 10)
+check node3.computed == vec4(40, 0, 10, 10)
+check node4.computed == vec4(20, 0, 10, 10)
 
-check l.computed(node5) == vec4(0, 20, 10, 10)
-check l.computed(node6) == vec4(40, 20, 10, 10)
-check l.computed(node7) == vec4(20, 20, 10, 10)
+check node5.computed == vec4(0, 20, 10, 10)
+check node6.computed == vec4(40, 20, 10, 10)
+check node7.computed == vec4(20, 20, 10, 10)
 
-check l.computed(node8) == vec4(0, 40, 10, 10)
-check l.computed(node9) == vec4(40, 40, 10, 10)
-check l.computed(node10) == vec4(20, 40, 10, 10)
+check node8.computed == vec4(0, 40, 10, 10)
+check node9.computed == vec4(40, 40, 10, 10)
+check node10.computed == vec4(20, 40, 10, 10)
 
 ```
