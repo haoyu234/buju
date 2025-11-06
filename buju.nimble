@@ -11,4 +11,3 @@ installExt    = @["nim"]
 # Dependencies
 
 requires "nim >= 1.6.0"
-requires "vmath >= 2.0.0"

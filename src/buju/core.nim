@@ -1,4 +1,3 @@
-import vmath
 import std/strformat
 
 type
@@ -39,7 +38,7 @@ type
     WrapNoWrap = 0x00
     WrapWrap = 0x01
 
-  Node* = object ## Layout node type
+  Node* = object  ## Layout node type
     id*: NodeID
 
     isBreak: bool ## whether an node's children have already been wrapped.
@@ -57,10 +56,10 @@ type
     prevSibling*: NodeID
     nextSibling*: NodeID
 
-    margin*: Vec4
-    size*: Vec2
+    margin*: array[4, float32]
+    size*: array[2, float32]
 
-    computed*: Vec4
+    computed*: array[4, float32]
       ## the calculated rectangle of an node.
       ## The components of the vector are:
       ## 0: x starting position, 1: y starting position, 2: width, 3: height.
@@ -164,7 +163,7 @@ template axisAlign(align: set[Align], dim: static[int]): CrossAxisAlign =
 proc calcSize(l: ptr Context, dim: static[int]) {.inline, raises: [].} =
   const wDim = dim + 2
 
-  # Note that we are doing a reverse-order loop here, 
+  # Note that we are doing a reverse-order loop here,
   # so the child nodes are always calculated before the parent nodes.
   var idx = l.caches.len
   while idx > 0:
@@ -486,7 +485,7 @@ proc compute*(l: ptr Context, n: ptr Node) {.inline, raises: [].} =
 
   var idx = 0
 
-  # Cache the results of the breadth-first traversal. 
+  # Cache the results of the breadth-first traversal.
   # For subsequent calculations, you can directly access the child nodes using subscripts.
   while idx < l.caches.len:
     let n = l.caches[idx].node

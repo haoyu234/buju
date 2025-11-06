@@ -17,7 +17,7 @@ proc main() =
 
   # Let's pretend we have a window in our game or OS of some known dimension.
   # We'll want to explicitly set our root node to be that size.
-  l.setSize(root, vec2(1280, 720))
+  l.setSize(root, [float32(1280), 720])
 
   # Set our root node to arrange its children in a row, left-to-right, in the
   # order they are inserted.
@@ -28,8 +28,8 @@ proc main() =
   l.insertChild(root, masterList)
 
   # Our master list has a specific fixed width, but we want it to fill all
-  # available vertical space. 
-  l.setSize(masterList, vec2(400, 0))
+  # available vertical space.
+  l.setSize(masterList, [float32(400), 0])
 
   # We set our node's behavior within its parent to desire filling up available
   # vertical space.
@@ -62,12 +62,13 @@ proc main() =
   let masterListRect = l.computed(masterList)
   let contentViewRect = l.computed(contentView)
 
-  check masterListRect == vec4(0, 0, 400, 720)
-  check contentViewRect == vec4(400, 0, 880, 720)
+  check masterListRect == [float32(0), 0, 400, 720]
+  check contentViewRect == [float32(400), 0, 880, 720]
 
   # If we're using an immediate-mode graphics library, we could draw our boxes
   # with it now.
-  drawXYWH(masterListRect[0], masterListRect[1], masterListRect[2], masterListRect[3])
+  drawXYWH(masterListRect[0], masterListRect[1], masterListRect[2],
+      masterListRect[3])
 
   # You could also recursively go through the entire node hierarchy using
   # `firstChild` and `nextSibling`, or something like that.

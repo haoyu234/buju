@@ -17,14 +17,14 @@ proc nested(l: var Context) =
 
   l.setSize(
     root,
-    vec2(
-      70,
+    [
+      float32(70),
       # 10 units extra size above and below for mainChild margin
       float32(numRowsWithHeight * 10 + 2 * 10),
-    ),
+    ],
   )
 
-  l.setMargin(mainChild, vec4(10, 10, 10, 10))
+  l.setMargin(mainChild, [float32(10), 10, 10, 10])
   l.setLayout(mainChild, LayoutColumn)
   l.insertChild(root, mainChild)
   l.setAlign(mainChild, {AlignLeft, AlignTop, AlignRight, AlignBottom})
@@ -56,7 +56,7 @@ proc nested(l: var Context) =
   for i in 0 ..< 5:
     let col = l.node()
     # fixed-size horizontally, fill vertically
-    l.setSize(col, vec2(10, 0))
+    l.setSize(col, [float32(10), 0])
     l.setAlign(col, {AlignTop, AlignBottom})
     l.insertChild(rows[1], col)
     cols2[i] = col
@@ -70,7 +70,7 @@ proc nested(l: var Context) =
     let col = l.node()
     let innerSizer = l.node()
     # only the second one will have height
-    l.setSize(innerSizer, vec2(25, float32(10 * i)))
+    l.setSize(innerSizer, [float32(25), float32(10 * i)])
     # align to bottom, only should make a difference for first item
     l.setAlign(col, {AlignBottom})
     l.insertChild(col, innerSizer)
@@ -109,38 +109,38 @@ proc nested(l: var Context) =
   for i in 0 ..< 5:
     l.compute(root)
 
-    check l.computed(mainChild) == vec4(10, 10, 50, 40)
+    check l.computed(mainChild) == [float32(10), 10, 50, 40]
 
     # these rows should all be 10 units in height
-    check l.computed(rows[0]) == vec4(10, 10, 50, 10)
-    check l.computed(rows[1]) == vec4(10, 20, 50, 10)
-    check l.computed(rows[2]) == vec4(10, 30, 50, 10)
+    check l.computed(rows[0]) == [float32(10), 10, 50, 10]
+    check l.computed(rows[1]) == [float32(10), 20, 50, 10]
+    check l.computed(rows[2]) == [float32(10), 30, 50, 10]
 
     # this row should have 0 height
-    check l.computed(rows[3]) == vec4(10, 40, 50, 0)
-    check l.computed(rows[4]) == vec4(10, 40, 50, 10)
+    check l.computed(rows[3]) == [float32(10), 40, 50, 0]
+    check l.computed(rows[4]) == [float32(10), 40, 50, 10]
 
     for i in 0 ..< 5:
       # each of these should be 10 units wide, and stacked horizontally
-      check l.computed(cols1[i]) == vec4(float32(10 + 10 * i), 10, 10, 10)
+      check l.computed(cols1[i]) == [float32(10 + 10 * i), 10, 10, 10]
 
     # the cols in the second row are similar to first row
     for i in 0 ..< 5:
-      check l.computed(cols2[i]) == vec4(float32(10 + 10 * i), 20, 10, 10)
+      check l.computed(cols2[i]) == [float32(10 + 10 * i), 20, 10, 10]
 
     # leftmost (first of two items), aligned to bottom of row, 0 units tall
-    check l.computed(cols3[0]) == vec4(10, 40, 25, 0)
+    check l.computed(cols3[0]) == [float32(10), 40, 25, 0]
 
     # rightmost (second of two items), same height as row, which is 10 units tall
-    check l.computed(cols3[1]) == vec4(35, 30, 25, 10)
+    check l.computed(cols3[1]) == [float32(35), 30, 25, 10]
 
     # these should all have size 0 and be in the middle of the row
     for i in 0 ..< 99:
-      check l.computed(cols4[i]) == vec4(25 + 10, 40, 0, 0)
+      check l.computed(cols4[i]) == [float32(25) + 10, 40, 0, 0]
 
     # these should all be 1 unit wide and 10 units tall
     for i in 0 ..< 50:
-      check l.computed(cols5[i]) == vec4(float32(10 + i), 40, 1, 10)
+      check l.computed(cols5[i]) == [float32(10 + i), 40, 1, 10]
 
 proc main() =
   let numRun = 100000

@@ -1,9 +1,6 @@
-import vmath
 import std/typetraits
 
 import ./buju/core
-
-export vmath
 
 export Context, NodeID, isNil, `$`
 export Align, MainAxisAlign, CrossAxisAlign, Layout, Wrap
@@ -85,7 +82,8 @@ proc node*(l: var Context): NodeID {.inline, raises: [].} =
 
   id
 
-proc setLayout*(l: var Context, nodeID: NodeID, layout: Layout) {.inline, raises: [].} =
+proc setLayout*(l: var Context, nodeID: NodeID, layout: Layout) {.inline,
+    raises: [].} =
   let
     l = l.getAddr
     n = l.node(nodeID)
@@ -93,9 +91,8 @@ proc setLayout*(l: var Context, nodeID: NodeID, layout: Layout) {.inline, raises
   if not n.isNil:
     n.layout = layout
 
-proc setAlign*(
-    l: var Context, nodeID: NodeID, align: set[Align]
-) {.inline, raises: [].} =
+proc setAlign*(l: var Context, nodeID: NodeID, align: set[Align]) {.inline,
+    raises: [].} =
   let
     l = l.getAddr
     n = l.node(nodeID)
@@ -103,9 +100,8 @@ proc setAlign*(
   if not n.isNil:
     n.align = align
 
-proc setMainAxisAlign*(
-    l: var Context, nodeID: NodeID, mainAxisAlign: MainAxisAlign
-) {.inline, raises: [].} =
+proc setMainAxisAlign*(l: var Context, nodeID: NodeID,
+    mainAxisAlign: MainAxisAlign) {.inline, raises: [].} =
   let
     l = l.getAddr
     n = l.node(nodeID)
@@ -113,9 +109,8 @@ proc setMainAxisAlign*(
   if not n.isNil:
     n.mainAxisAlign = mainAxisAlign
 
-proc setCrossAxisAlign*(
-    l: var Context, nodeID: NodeID, crossAxisAlign: CrossAxisAlign
-) {.inline, raises: [].} =
+proc setCrossAxisAlign*(l: var Context, nodeID: NodeID,
+    crossAxisAlign: CrossAxisAlign) {.inline, raises: [].} =
   let
     l = l.getAddr
     n = l.node(nodeID)
@@ -131,8 +126,9 @@ proc setWrap*(l: var Context, nodeID: NodeID, wrap: Wrap) {.inline, raises: [].}
   if not n.isNil:
     n.wrap = wrap
 
-proc setSize*(l: var Context, nodeID: NodeID, size: Vec2) {.inline, raises: [].} =
-  ## Sets the size of an node. 
+proc setSize*(l: var Context, nodeID: NodeID, size: array[2, float32]) {.inline,
+    raises: [].} =
+  ## Sets the size of an node.
   ## The components of the vector are:
   ## 0: width, 1: height.
 
@@ -143,8 +139,9 @@ proc setSize*(l: var Context, nodeID: NodeID, size: Vec2) {.inline, raises: [].}
   if not n.isNil:
     n.size = size
 
-proc setMargin*(l: var Context, nodeID: NodeID, margin: Vec4) {.inline, raises: [].} =
-  ## Set the margins on an node. 
+proc setMargin*(l: var Context, nodeID: NodeID, margin: array[4,
+    float32]) {.inline, raises: [].} =
+  ## Set the margins on an node.
   ## The components of the vector are:
   ## 0: left, 1: top, 2: right, 3: bottom.
 
@@ -232,10 +229,11 @@ proc compute*(l: var Context, nodeID: NodeID) {.inline, raises: [].} =
   if not n.isNil:
     l.compute(n)
 
-proc computed*(l: Context, nodeID: NodeID): Vec4 {.inline, raises: [].} =
+proc computed*(l: Context, nodeID: NodeID): array[4, float32] {.inline,
+    raises: [].} =
   ## Returns the calculated rectangle of an node. This is only valid after calling
   ## `compute` and before any other reallocation occurs. Otherwise, the
-  ## result will be undefined. 
+  ## result will be undefined.
   ## The components of the vector are:
   ## 0: x starting position, 1: y starting position, 2: width, 3: height.
 

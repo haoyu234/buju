@@ -7,7 +7,7 @@ test2 "simple_fill":
   let root = l.node()
   let child = l.node()
 
-  l.setSize(root, vec2(30, 40))
+  l.setSize(root, [float32(30), 40])
   l.setAlign(child, {AlignLeft, AlignTop, AlignRight, AlignBottom})
   l.insertChild(root, child)
   l.compute(root)
@@ -30,13 +30,13 @@ test2 "multiple_uninserted":
   let child1 = l.node()
   let child2 = l.node()
 
-  l.setSize(root, vec2(155, 177))
-  l.setSize(child2, vec2(1, 1))
+  l.setSize(root, [float32(155), 177])
+  l.setSize(child2, [float32(1), 1])
   l.compute(root)
 
-  check l.computed(root) == vec4(0, 0, 155, 177)
-  check l.computed(child1) == vec4(0, 0, 0, 0)
-  check l.computed(child2) == vec4(0, 0, 0, 0)
+  check l.computed(root) == [float32(0), 0, 155, 177]
+  check l.computed(child1) == [float32(0), 0, 0, 0]
+  check l.computed(child2) == [float32(0), 0, 0, 0]
 
 test2 "column_even_fill":
   let root = l.node()
@@ -44,7 +44,7 @@ test2 "column_even_fill":
   let child2 = l.node()
   let child3 = l.node()
 
-  l.setSize(root, vec2(50, 60))
+  l.setSize(root, [float32(50), 60])
   l.setLayout(root, LayoutColumn)
   l.setAlign(child1, {AlignLeft, AlignTop, AlignRight, AlignBottom})
   l.setAlign(child2, {AlignLeft, AlignTop, AlignRight, AlignBottom})
@@ -55,10 +55,10 @@ test2 "column_even_fill":
   l.insertChild(root, child3)
   l.compute(root)
 
-  check l.computed(root) == vec4(0, 0, 50, 60)
-  check l.computed(child1) == vec4(0, 0, 50, 20)
-  check l.computed(child2) == vec4(0, 20, 50, 20)
-  check l.computed(child3) == vec4(0, 40, 50, 20)
+  check l.computed(root) == [float32(0), 0, 50, 60]
+  check l.computed(child1) == [float32(0), 0, 50, 20]
+  check l.computed(child2) == [float32(0), 20, 50, 20]
+  check l.computed(child3) == [float32(0), 40, 50, 20]
 
 test2 "row_even_fill":
   let root = l.node()
@@ -66,25 +66,25 @@ test2 "row_even_fill":
   let child2 = l.node()
   let child3 = l.node()
 
-  l.setSize(root, vec2(90, 3))
+  l.setSize(root, [float32(90), 3])
   l.setLayout(root, LayoutRow)
   l.setAlign(child1, {AlignLeft, AlignRight, AlignTop})
   l.setAlign(child2, {AlignLeft, AlignRight})
   l.setAlign(child3, {AlignLeft, AlignRight, AlignBottom})
 
-  l.setSize(child1, vec2(0, 1))
-  l.setSize(child2, vec2(0, 1))
-  l.setSize(child3, vec2(0, 1))
+  l.setSize(child1, [float32(0), 1])
+  l.setSize(child2, [float32(0), 1])
+  l.setSize(child3, [float32(0), 1])
 
   l.insertChild(root, child1)
   l.insertChild(root, child2)
   l.insertChild(root, child3)
   l.compute(root)
 
-  check l.computed(root) == vec4(0, 0, 90, 3)
-  check l.computed(child1) == vec4(0, 0, 30, 1)
-  check l.computed(child2) == vec4(30, 1, 30, 1)
-  check l.computed(child3) == vec4(60, 2, 30, 1)
+  check l.computed(root) == [float32(0), 0, 90, 3]
+  check l.computed(child1) == [float32(0), 0, 30, 1]
+  check l.computed(child2) == [float32(30), 1, 30, 1]
+  check l.computed(child3) == [float32(60), 2, 30, 1]
 
 test2 "fixed_and_fill":
   let root = l.node()
@@ -94,9 +94,9 @@ test2 "fixed_and_fill":
 
   l.setLayout(root, LayoutColumn)
 
-  l.setSize(root, vec2(50, 60))
-  l.setSize(fixed1, vec2(50, 15))
-  l.setSize(fixed2, vec2(50, 15))
+  l.setSize(root, [float32(50), 60])
+  l.setSize(fixed1, [float32(50), 15])
+  l.setSize(fixed2, [float32(50), 15])
   l.setAlign(filler, {AlignLeft, AlignTop, AlignRight, AlignBottom})
 
   l.insertChild(root, fixed1)
@@ -104,10 +104,10 @@ test2 "fixed_and_fill":
   l.insertChild(root, fixed2)
   l.compute(root)
 
-  check l.computed(root) == vec4(0, 0, 50, 60)
-  check l.computed(fixed1) == vec4(0, 0, 50, 15)
-  check l.computed(filler) == vec4(0, 15, 50, 30)
-  check l.computed(fixed2) == vec4(0, 45, 50, 15)
+  check l.computed(root) == [float32(0), 0, 50, 60]
+  check l.computed(fixed1) == [float32(0), 0, 50, 15]
+  check l.computed(filler) == [float32(0), 15, 50, 30]
+  check l.computed(fixed2) == [float32(0), 45, 50, 15]
 
 test2 "simple_margins_1":
   let root = l.node()
@@ -120,20 +120,20 @@ test2 "simple_margins_1":
   l.setAlign(child2, {AlignLeft, AlignRight, AlignTop, AlignBottom})
   l.setAlign(child3, {AlignLeft, AlignRight})
 
-  l.setSize(root, vec2(100, 90))
+  l.setSize(root, [float32(100), 90])
 
-  l.setMargin(child1, vec4(3, 5, 7, 10))
-  l.setSize(child1, vec2(0, (30 - (5 + 10))))
-  l.setSize(child3, vec2(0, 30))
+  l.setMargin(child1, [float32(3), 5, 7, 10])
+  l.setSize(child1, [float32(0), (30 - (5 + 10))])
+  l.setSize(child3, [float32(0), 30])
 
   l.insertChild(root, child1)
   l.insertChild(root, child2)
   l.insertChild(root, child3)
   l.compute(root)
 
-  check l.computed(child1) == vec4(3, 5, 90, (5 + 10))
-  check l.computed(child2) == vec4(0, 30, 100, 30)
-  check l.computed(child3) == vec4(0, 60, 100, 30)
+  check l.computed(child1) == [float32(3), 5, 90, (5 + 10)]
+  check l.computed(child2) == [float32(0), 30, 100, 30]
+  check l.computed(child3) == [float32(0), 60, 100, 30]
 
 test2 "nested_boxes_1":
   const numRows = 5
@@ -142,8 +142,8 @@ test2 "nested_boxes_1":
   let root = l.node()
   let mainChild = l.node()
 
-  l.setSize(root, vec2(70, float32(numRowsWithHeight * 10 + 2 * 10)))
-  l.setMargin(mainChild, vec4(10, 10, 10, 10))
+  l.setSize(root, [float32(70), float32(numRowsWithHeight * 10 + 2 * 10)])
+  l.setMargin(mainChild, [float32(10), 10, 10, 10])
   l.setLayout(mainChild, LayoutColumn)
   l.insertChild(root, mainChild)
   l.setAlign(mainChild, {AlignLeft, AlignTop, AlignRight, AlignBottom})
@@ -168,7 +168,7 @@ test2 "nested_boxes_1":
   var cols2: array[5, NodeID]
   for i in 0 ..< 5:
     let col = l.node()
-    l.setSize(col, vec2(10, 0))
+    l.setSize(col, [float32(10), 0])
     l.setAlign(col, {AlignTop, AlignBottom})
     l.insertChild(rows[1], col)
     cols2[i] = col
@@ -180,7 +180,7 @@ test2 "nested_boxes_1":
   for i in 0 ..< 2:
     let col = l.node()
     let innerSizer = l.node()
-    l.setSize(innerSizer, vec2(25, float32(10 * i)))
+    l.setSize(innerSizer, [float32(25), float32(10 * i)])
     l.setAlign(col, {AlignBottom})
     l.insertChild(col, innerSizer)
     l.insertChild(rows[2], col)
@@ -213,29 +213,29 @@ test2 "nested_boxes_1":
   for i in 0 ..< 5:
     l.compute(root)
 
-    check l.computed(mainChild) == vec4(10, 10, 50, 40)
+    check l.computed(mainChild) == [float32(10), 10, 50, 40]
 
-    check l.computed(rows[0]) == vec4(10, 10, 50, 10)
-    check l.computed(rows[1]) == vec4(10, 20, 50, 10)
-    check l.computed(rows[2]) == vec4(10, 30, 50, 10)
+    check l.computed(rows[0]) == [float32(10), 10, 50, 10]
+    check l.computed(rows[1]) == [float32(10), 20, 50, 10]
+    check l.computed(rows[2]) == [float32(10), 30, 50, 10]
 
-    check l.computed(rows[3]) == vec4(10, 40, 50, 0)
-    check l.computed(rows[4]) == vec4(10, 40, 50, 10)
-
-    for i in 0 ..< 5:
-      check l.computed(cols1[i]) == vec4(float32(10 + 10 * i), 10, 10, 10)
+    check l.computed(rows[3]) == [float32(10), 40, 50, 0]
+    check l.computed(rows[4]) == [float32(10), 40, 50, 10]
 
     for i in 0 ..< 5:
-      check l.computed(cols2[i]) == vec4(float32(10 + 10 * i), 20, 10, 10)
+      check l.computed(cols1[i]) == [float32(10 + 10 * i), 10, 10, 10]
 
-    check l.computed(cols3[0]) == vec4(10, 40, 25, 0)
-    check l.computed(cols3[1]) == vec4(35, 30, 25, 10)
+    for i in 0 ..< 5:
+      check l.computed(cols2[i]) == [float32(10 + 10 * i), 20, 10, 10]
+
+    check l.computed(cols3[0]) == [float32(10), 40, 25, 0]
+    check l.computed(cols3[1]) == [float32(35), 30, 25, 10]
 
     for i in 0 ..< 99:
-      check l.computed(cols4[i]) == vec4(25 + 10, 40, 0, 0)
+      check l.computed(cols4[i]) == [float32(25) + 10, 40, 0, 0]
 
     for i in 0 ..< 50:
-      check l.computed(cols5[i]) == vec4(float32(10 + i), 40, 1, 10)
+      check l.computed(cols5[i]) == [float32(10 + i), 40, 1, 10]
 
 test2 "deep_nest_1":
   const numItems = 500
@@ -248,38 +248,38 @@ test2 "deep_nest_1":
     l.insertChild(parent, child)
     parent = child
 
-  l.setSize(parent, vec2(77, 99))
+  l.setSize(parent, [float32(77), 99])
   l.compute(root)
 
-  check l.computed(root) == vec4(0, 0, 77, 99)
+  check l.computed(root) == [float32(0), 0, 77, 99]
 
 test2 "many_children_1":
   const numItems = 20000
 
   let root = l.node()
-  l.setSize(root, vec2(1, 0))
+  l.setSize(root, [float32(1), 0])
   l.setLayout(root, LayoutColumn)
 
   let node1 = l.node()
-  l.setSize(node1, vec2(1, 1))
+  l.setSize(node1, [float32(1), 1])
   l.insertChild(root, node1)
 
   for i in 0 ..< (numItems - 1):
     let node2 = l.node()
-    l.setSize(node2, vec2(1, 1))
+    l.setSize(node2, [float32(1), 1])
     l.insertChild(root, node2)
 
   l.compute(root)
 
-  check l.computed(root) == vec4(0, 0, 1, numItems)
+  check l.computed(root) == [float32(0), 0, 1, numItems]
 
 test2 "child_align_1":
   let root = l.node()
-  l.setSize(root, vec2(50, 50))
+  l.setSize(root, [float32(50), 50])
 
   template alignBox(n, align) =
     let n = l.node()
-    l.setSize(n, vec2(10, 10))
+    l.setSize(n, [float32(10), 10])
     l.setAlign(n, align)
     l.insertChild(root, n)
 
@@ -297,25 +297,25 @@ test2 "child_align_1":
 
   l.compute(root)
 
-  check l.computed(child1) == vec4(0, 0, 10, 10)
-  check l.computed(child2) == vec4(40, 0, 10, 10)
-  check l.computed(child3) == vec4(20, 0, 10, 10)
+  check l.computed(child1) == [float32(0), 0, 10, 10]
+  check l.computed(child2) == [float32(40), 0, 10, 10]
+  check l.computed(child3) == [float32(20), 0, 10, 10]
 
-  check l.computed(child4) == vec4(0, 20, 10, 10)
-  check l.computed(child5) == vec4(40, 20, 10, 10)
-  check l.computed(child6) == vec4(20, 20, 10, 10)
+  check l.computed(child4) == [float32(0), 20, 10, 10]
+  check l.computed(child5) == [float32(40), 20, 10, 10]
+  check l.computed(child6) == [float32(20), 20, 10, 10]
 
-  check l.computed(child7) == vec4(0, 40, 10, 10)
-  check l.computed(child8) == vec4(40, 40, 10, 10)
-  check l.computed(child9) == vec4(20, 40, 10, 10)
+  check l.computed(child7) == [float32(0), 40, 10, 10]
+  check l.computed(child8) == [float32(40), 40, 10, 10]
+  check l.computed(child9) == [float32(20), 40, 10, 10]
 
 test2 "child_align_2":
   let root = l.node()
-  l.setSize(root, vec2(50, 50))
+  l.setSize(root, [float32(50), 50])
 
   template alignBox(n, align) =
     let n = l.node()
-    l.setSize(n, vec2(10, 10))
+    l.setSize(n, [float32(10), 10])
     l.setAlign(n, align)
     l.insertChild(root, n)
 
@@ -329,10 +329,10 @@ test2 "child_align_2":
 
   l.compute(root)
 
-  check l.computed(child1) == vec4(0, 0, 50, 10)
-  check l.computed(child2) == vec4(0, 20, 50, 10)
-  check l.computed(child3) == vec4(0, 40, 50, 10)
+  check l.computed(child1) == [float32(0), 0, 50, 10]
+  check l.computed(child2) == [float32(0), 20, 50, 10]
+  check l.computed(child3) == [float32(0), 40, 50, 10]
 
-  check l.computed(child4) == vec4(0, 0, 10, 50)
-  check l.computed(child5) == vec4(40, 0, 10, 50)
-  check l.computed(child6) == vec4(20, 0, 10, 50)
+  check l.computed(child4) == [float32(0), 0, 10, 50]
+  check l.computed(child5) == [float32(40), 0, 10, 50]
+  check l.computed(child6) == [float32(20), 0, 10, 50]
