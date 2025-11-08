@@ -66,7 +66,7 @@ iterator children*(l: Context, nodeID: NodeID): NodeID {.inline, raises: [].} =
     while not id.isNil:
       yield id
 
-      let n = l.node(nodeID)
+      let n = l.node(id)
       id = n.nextSibling
 
 proc node*(l: var Context): NodeID {.inline, raises: [].} =
