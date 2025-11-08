@@ -3,7 +3,7 @@ import buju
 const bujuDumpJson {.booldefine.} = false
 
 when bujuDumpJson:
-  import ./dumpJson
+  import buju/dumps
 
 template test2*(name: static[string], body: untyped) =
   test name:

@@ -1,16 +1,17 @@
 import buju
 import buju/core
+import buju/dumps
 
 import std/tables
 import std/sugar
 import std/strutils
+import std/jsffi
 
 include karax/prelude
 import karax/[kdom, vstyles]
 
 type
   NodeAttr = object
-    id: NodeID
     wrap: Wrap
     layout: Layout
     mainAxisAlign: MainAxisAlign
@@ -29,14 +30,64 @@ var
   rootId = default(NodeID)
   focusId = default(NodeID)
   mapping = initTable[NodeID, NodeID]()
-  scale = 1f
+  scale = 1
   defaultAttr = NodeAttr(size: [50, 50], margin: [5, 5, 5, 5])
 
+proc download(data: cstring, mime: cstring, name: cstring) =
+  when defined(js):
+    {.
+      emit:
+        """
+      let blob = new Blob([`data`], { `mime` });
+      let downloadElement = document.createElement("a");
+      let href = window.URL.createObjectURL(blob);
+      downloadElement.href = href;
+      downloadElement.download = `name`;
+      document.body.appendChild(downloadElement);
+      downloadElement.click();
+      document.body.removeChild(downloadElement);
+      window.URL.revokeObjectURL(href);
+    """
+    .}
+
+proc upload(cb: proc(data: cstring)) =
+  when defined(js):
+    {.
+      emit:
+        """
+      let inputElement = document.createElement("input");
+      inputElement.type = "file";
+      inputElement.style.display = "none";
+      inputElement.accept = "application/json";
+      inputElement.single = true;
+      inputElement.onchange = function () {
+        const file = inputElement.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.readAsText(file);
+          reader.onload = () => {
+            `cb`(reader.result);
+          };
+        }
+      };
+
+      document.body.appendChild(inputElement);
+      inputElement.click();
+      document.body.removeChild(inputElement);
+    """
+    .}
+
 proc exportJson() =
-  echo "1"
+  let json = l.dumpJson(rootId)
+  download(json.cstring, "application/json".cstring, "buju.json".cstring)
 
 proc importJson() =
-  echo "2"
+  upload:
+    proc(data: cstring) =
+      l.clear()
+      rootId = l.loadJson($data)
+      focusId = rootId
+      redraw()
 
 proc getAttr(id: NodeID): NodeAttr =
   let n = node(l.addr, id)
@@ -44,7 +95,6 @@ proc getAttr(id: NodeID): NodeAttr =
   if n.isNil:
     return
 
-  result.id = id
   result.wrap = n.wrap
   result.layout = n.layout
   result.mainAxisAlign = n.mainAxisAlign
@@ -76,7 +126,7 @@ proc updateAttr(n: NodeID, attr: NodeAttr) =
   l.setMargin(n, attr.margin)
 
 proc toPixelSize(v: float32): kstring =
-  kstring($(scale * v) & "px")
+  kstring($(float32(scale) * v) & "px")
 
 proc trim(s: string, T: typedesc): string =
   s.replace($T, "")
@@ -443,17 +493,9 @@ proc createDom(): VNode =
     ):
       section(class = "tools"):
         button(class = "tool", onclick = importJson):
-          text "import"
+          text "importJson"
         button(class = "tool", onclick = exportJson):
-          text "export"
-
-        for val in [1, 2, 3, 5, 8, 10]:
-          let onClick = capture val:
-            proc() =
-              scale = float32(val)
-
-          button(class = "tool", onclick = onClick):
-            text("x" & $val)
+          text "exportJson"
 
         button(class = "tool"):
           proc onclick() =
@@ -464,6 +506,17 @@ proc createDom(): VNode =
               mode = H5
 
           text($mode)
+
+      section(class = "tools"):
+        for val in [1, 2, 5, 10, 25]:
+          let onClick = capture val:
+            proc() =
+              scale = val
+
+          let class = if val == scale: "tool focus" else: "tool"
+
+          button(class = class, onclick = onClick):
+            text("x" & $val)
 
       section(class = "options"):
         let attr = getAttr(focusId)

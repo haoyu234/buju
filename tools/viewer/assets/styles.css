@@ -22,6 +22,7 @@ td {
 }
 
 .focus {
+  border: 0px;
   box-shadow:
     0 0 0 1px #000,
     0px 0px 10px #008000;
@@ -40,7 +41,7 @@ td {
 
 .tools {
   margin: 6px 0px;
-  display: inline-block;
+  /* display: inline-block; */
 }
 
 .tool {
