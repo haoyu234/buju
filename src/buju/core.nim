@@ -23,11 +23,17 @@ type
     MainAxisAlignSpaceAround = 0x05
     MainAxisAlignSpaceEvenly = 0x07
 
+  AxisAlign = enum
+    AxisAlignMiddle = 0x00
+    AxisAlignStart = 0x01
+    AxisAlignEnd = 0x04
+    AxisAlignStretch = 0x05
+
   CrossAxisAlign* = enum
-    CrossAxisAlignMiddle = 0x00
-    CrossAxisAlignStart = 0x01
-    CrossAxisAlignEnd = 0x04
-    CrossAxisAlignStretch = 0x05
+    CrossAxisAlignMiddle = AxisAlignMiddle
+    CrossAxisAlignStart = AxisAlignStart
+    CrossAxisAlignEnd = AxisAlignEnd
+    CrossAxisAlignStretch = AxisAlignStretch
 
   Layout* = enum
     LayoutFree = 0x00
@@ -73,23 +79,22 @@ proc `$`*(id: NodeID): string =
     return fmt"NODE{int(id)}"
   return "NIL"
 
-proc isNil*(id: NodeID): bool {.inline, raises: [].} =
+proc isNil*(id: NodeID): bool {.inline.} =
   id == NIL
 
-proc node*(l: ptr Context, id: NodeID): ptr Node {.inline, raises: [].} =
+proc node*(l: ptr Context, id: NodeID): ptr Node =
   let idx = int32(id) - 1
   if idx >= 0 and idx < len(l.nodes):
     return l.nodes[idx].addr
 
-iterator children*(l: ptr Context, n: ptr Node): ptr Node {.inline, raises: [].} =
+iterator children*(l: ptr Context, n: ptr Node): ptr Node =
   var n = l.node(n.firstChild)
   while not n.isNil:
     yield n
     n = l.node(n.nextSibling)
 
-proc calcStackedSize(
-    l: ptr Context, c: ptr NodeCache, dim: static[int]
-): float32 {.inline, raises: [].} =
+proc calcStackedSize(l: ptr Context, c: ptr NodeCache, dim: static[
+    int]): float32 =
   const wDim = dim + 2
 
   var needSize = 0f
@@ -100,9 +105,8 @@ proc calcStackedSize(
     needSize = needSize + size
   needSize
 
-proc calcOverlayedSize(
-    l: ptr Context, c: ptr NodeCache, dim: static[int]
-): float32 {.inline, raises: [].} =
+proc calcOverlayedSize(l: ptr Context, c: ptr NodeCache, dim: static[
+    int]): float32 =
   const wDim = dim + 2
 
   var needSize = 0f
@@ -113,9 +117,8 @@ proc calcOverlayedSize(
     needSize = max(size, needSize)
   needSize
 
-proc calcWrappedOverlayedSize(
-    l: ptr Context, c: ptr NodeCache, dim: static[int]
-): float32 {.inline, raises: [].} =
+proc calcWrappedOverlayedSize(l: ptr Context, c: ptr NodeCache, dim: static[
+    int]): float32 =
   const wDim = dim + 2
 
   var needSize = 0f
@@ -130,9 +133,8 @@ proc calcWrappedOverlayedSize(
     needSize = max(needSize, size)
   needSize + needSize2
 
-proc calcWrappedStackedSize(
-    l: ptr Context, c: ptr NodeCache, dim: static[int]
-): float32 {.inline, raises: [].} =
+proc calcWrappedStackedSize(l: ptr Context, c: ptr NodeCache, dim: static[
+    int]): float32 =
   const wDim = dim + 2
 
   var needSize = 0f
@@ -148,19 +150,32 @@ proc calcWrappedStackedSize(
   max(needSize2, needSize)
 
 template combine(layout: Layout, wrap: Wrap): uint32 =
-  uint32(layout) + (uint32(wrap) shl 8)
+  uint32(ord(layout) + (ord(wrap) shl 8))
 
 template isSameAxis(layout: Layout, dim: static[int]): bool =
   ord(layout) == (dim + 1)
 
-template axisAlign(align: set[Align], dim: static[int]): CrossAxisAlign =
+template toAxisAlign(align: set[Align], dim: static[int]): AxisAlign =
   var bits = uint32(0)
   for a in align:
     bits = bits or uint32(a)
 
-  cast[CrossAxisAlign]((bits shr dim) and uint32(CrossAxisAlignStretch))
+  cast[AxisAlign]((bits shr dim) and ord(AxisAlignStretch))
 
-proc calcSize(l: ptr Context, dim: static[int]) {.inline, raises: [].} =
+template toAxisAlign(layout: Layout, crossAxisAlign: CrossAxisAlign,
+    dim: static[int]): AxisAlign =
+  if isSameAxis(layout, dim):
+    AxisAlignMiddle
+  else:
+    cast[AxisAlign](crossAxisAlign)
+
+    # case crossAxisAlign
+    # of CrossAxisAlignMiddle: AxisAlignMiddle
+    # of CrossAxisAlignStart: AxisAlignStart
+    # of CrossAxisAlignEnd: AxisAlignEnd
+    # of CrossAxisAlignStretch: AxisAlignStretch
+
+proc calcSize(l: ptr Context, dim: static[int]) =
   const wDim = dim + 2
 
   # Note that we are doing a reverse-order loop here,
@@ -206,9 +221,8 @@ proc calcSize(l: ptr Context, dim: static[int]) {.inline, raises: [].} =
     # and by arrange procedures.
     n.computed[wDim] = needSize
 
-proc arrangeStacked(
-    l: ptr Context, c: ptr NodeCache, dim: static[int], wrap: static[bool]
-) {.inline, raises: [].} =
+proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: static[int],
+    wrap: static[bool]) =
   const wDim = dim + 2
 
   let n = c.node
@@ -242,7 +256,7 @@ proc arrangeStacked(
       inc itemCount, 1
       var extend = used + child.computed[dim] + child.margin[wDim]
 
-      if axisAlign(child.align, dim) == CrossAxisAlignStretch:
+      if toAxisAlign(child.align, dim) == AxisAlignStretch:
         inc count
       else:
         if child.size[dim] <= 0:
@@ -304,7 +318,7 @@ proc arrangeStacked(
       let child = l.caches[idx].node
 
       x += child.computed[dim] + extraMargin
-      if axisAlign(child.align, dim) == CrossAxisAlignStretch:
+      if toAxisAlign(child.align, dim) == AxisAlignStretch:
         # grow
         x1 = x + filler
       elif child.size[dim] > 0:
@@ -328,9 +342,8 @@ proc arrangeStacked(
 
     arrangeRangeBegin = expandRangeEnd
 
-proc arrangeOverlay(
-    l: ptr Context, c: ptr NodeCache, dim: static[int]
-) {.inline, raises: [].} =
+proc arrangeOverlay(l: ptr Context, c: ptr NodeCache, dim: static[
+    int]) =
   const wDim = dim + 2
 
   let n = c.node
@@ -340,50 +353,41 @@ proc arrangeOverlay(
   for idx in c.childOffset ..< c.childOffset + c.childCount:
     let child = l.caches[idx].node
 
-    case axisAlign(child.align, dim)
-    of CrossAxisAlignStretch:
+    case toAxisAlign(child.align, dim)
+    of AxisAlignStretch:
       child.computed[wDim] = max(0f, space - child.computed[dim] - child.margin[wDim])
-    of CrossAxisAlignEnd:
+    of AxisAlignEnd:
       child.computed[dim] =
         child.computed[dim] + space - child.computed[wDim] - child.margin[dim] -
         child.margin[wDim]
-    of CrossAxisAlignStart:
+    of AxisAlignStart:
       discard
-    of CrossAxisAlignMiddle:
+    of AxisAlignMiddle:
       child.computed[dim] =
         child.computed[dim] +
         max(0f, (space - child.computed[wDim]) / 2 - child.margin[wDim])
 
     child.computed[dim] = child.computed[dim] + offset
 
-proc arrangeOverlaySqueezedRange(
-    l: ptr Context,
-    dim: static[int],
-    crossAxisAlign: CrossAxisAlign,
-    squeezedRangeBegin, arrangeRangeEnd: uint32,
-    offset, space: float32,
-) {.inline, raises: [].} =
+proc arrangeOverlaySqueezedRange(l: ptr Context, dim: static[int],
+    inheritedAxisAlign: AxisAlign, squeezedRangeBegin, arrangeRangeEnd: uint32,
+    offset, space: float32) =
   const wDim = dim + 2
 
   for idx in squeezedRangeBegin ..< arrangeRangeEnd:
     let child = l.caches[idx].node
     let minSize = max(0f, space - child.computed[dim] - child.margin[wDim])
-
-    let align =
-      if len(child.align) > 0:
-        axisAlign(child.align, dim)
-      else:
-        crossAxisAlign
-
-    case align
-    of CrossAxisAlignStretch:
+    let childAlign = toAxisAlign(child.align, dim)
+    let composeAlign = cast[AxisAlign](ord(childAlign) or ord(inheritedAxisAlign))
+    case composeAlign
+    of AxisAlignStretch:
       child.computed[wDim] = minSize
-    of CrossAxisAlignStart:
+    of AxisAlignStart:
       child.computed[wDim] = min(child.computed[wDim], minSize)
-    of CrossAxisAlignEnd:
+    of AxisAlignEnd:
       child.computed[wDim] = min(child.computed[wDim], minSize)
       child.computed[dim] = space - child.computed[wDim] - child.margin[wDim]
-    of CrossAxisAlignMiddle:
+    of AxisAlignMiddle:
       child.computed[wDim] = min(child.computed[wDim], minSize)
       child.computed[dim] =
         child.computed[dim] +
@@ -391,12 +395,12 @@ proc arrangeOverlaySqueezedRange(
 
     child.computed[dim] = child.computed[dim] + offset
 
-proc arrangeWrappedOverlaySqueezed(
-    l: ptr Context, c: ptr NodeCache, dim: static[int]
-): float32 {.inline, raises: [].} =
+proc arrangeWrappedOverlaySqueezed(l: ptr Context, c: ptr NodeCache,
+    dim: static[int]): float32 =
   const wDim = dim + 2
 
   let n = c.node
+  let inheritedAxisAlign = toAxisAlign(n.layout, n.crossAxisAlign, dim)
 
   var offset = n.computed[dim]
   var needSize = 0f
@@ -407,7 +411,7 @@ proc arrangeWrappedOverlaySqueezed(
     let child = l.caches[idx].node
     if child.isBreak:
       l.arrangeOverlaySqueezedRange(
-        dim, n.crossAxisAlign, squeezedRangeBegin, idx, offset, needSize
+        dim, inheritedAxisAlign, squeezedRangeBegin, idx, offset, needSize
       )
       offset = offset + needSize
       squeezedRangeBegin = idx
@@ -418,7 +422,7 @@ proc arrangeWrappedOverlaySqueezed(
 
   l.arrangeOverlaySqueezedRange(
     dim,
-    n.crossAxisAlign,
+    inheritedAxisAlign,
     squeezedRangeBegin,
     c.childOffset + c.childCount,
     offset,
@@ -427,9 +431,7 @@ proc arrangeWrappedOverlaySqueezed(
 
   offset + needSize
 
-proc arrange(
-    l: ptr Context, c: ptr NodeCache, dim: static[int]
-) {.inline, raises: [].} =
+proc arrange(l: ptr Context, c: ptr NodeCache, dim: static[int]) =
   const wDim = dim + 2
 
   let n = c.node
@@ -454,7 +456,7 @@ proc arrange(
     else:
       l.arrangeOverlaySqueezedRange(
         dim,
-        n.crossAxisAlign,
+        cast[AxisAlign](ord(n.crossAxisAlign)),
         c.childOffset,
         c.childOffset + c.childCount,
         n.computed[dim],
@@ -464,7 +466,7 @@ proc arrange(
     # free layout model
     l.arrangeOverlay(c, dim)
 
-proc arrange(l: ptr Context, dim: static[int]) {.inline, raises: [].} =
+proc arrange(l: ptr Context, dim: static[int]) =
   for idx in 0 ..< l.caches.len:
     let c = l.caches[idx].addr
     let n = c.node
@@ -478,7 +480,7 @@ proc arrange(l: ptr Context, dim: static[int]) {.inline, raises: [].} =
       if n.isSkipXAxis:
         l.arrange(c, 0)
 
-proc compute*(l: ptr Context, n: ptr Node) {.inline, raises: [].} =
+proc compute*(l: ptr Context, n: ptr Node) =
   n.isSkipXAxis = false
 
   l.caches.add(NodeCache(node: n))
