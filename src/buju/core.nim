@@ -16,24 +16,36 @@ type
     AlignBottom = 0x08
 
   MainAxisAlign* = enum
+    ## justify-content.
+    ## Controls the alignment of all nodes on the main axis.
+
     MainAxisAlignMiddle = 0x00
     MainAxisAlignStart = 0x01
     MainAxisAlignEnd = 0x02
-    MainAxisAlignSpaceBetween = 0x03
-    MainAxisAlignSpaceAround = 0x05
-    MainAxisAlignSpaceEvenly = 0x07
+    MainAxisAlignSpaceBetween = 0x08
+    MainAxisAlignSpaceAround = 0x10
+    MainAxisAlignSpaceEvenly = 0x18
 
-  AxisAlign = enum
+  AxisAlign* = enum
+    ## align-content.
+    ## Controls the space between flex lines on the cross axis.
+
     AxisAlignMiddle = 0x00
     AxisAlignStart = 0x01
     AxisAlignEnd = 0x04
     AxisAlignStretch = 0x05
+    AxisAlignSpaceBetween = 0x08
+    AxisAlignSpaceAround = 0x10
+    AxisAlignSpaceEvenly = 0x18
 
   CrossAxisAlign* = enum
-    CrossAxisAlignMiddle = AxisAlignMiddle
-    CrossAxisAlignStart = AxisAlignStart
-    CrossAxisAlignEnd = AxisAlignEnd
-    CrossAxisAlignStretch = AxisAlignStretch
+    ## align-items.
+    ## Controls the alignment of all nodes on the cross axis.
+
+    CrossAxisAlignMiddle = 0x00
+    CrossAxisAlignStart = 0x01
+    CrossAxisAlignEnd = 0x04
+    CrossAxisAlignStretch = 0x05
 
   Layout* = enum
     LayoutFree = 0x00
@@ -47,14 +59,16 @@ type
   Node* = object  ## Layout node type
     id*: NodeID
 
-    isBreak: bool ## whether an node's children have already been wrapped.
-    isSkipXAxis: bool
-      ## whether or not to delay the calculation of the X-axis coordinates
+    isBreak: bool ## Whether an node's children have already been wrapped.
+    isDelay: bool
+      ## Whether to delay the calculation.
+      ## When line wrapping is enabled, the main axis affects the order of x/y calculation.
 
     wrap*: Wrap
     layout*: Layout
     mainAxisAlign*: MainAxisAlign
     crossAxisAlign*: CrossAxisAlign
+    axisAlign*: AxisAlign
     align*: set[Align]
 
     firstChild*: NodeID
@@ -66,7 +80,7 @@ type
     size*: array[2, float32]
 
     computed*: array[4, float32]
-      ## the calculated rectangle of an node.
+      ## The calculated rectangle of an node.
       ## The components of the vector are:
       ## 0: x starting position, 1: y starting position, 2: width, 3: height.
 
@@ -220,6 +234,8 @@ proc calcSize(l: ptr Context, dim: int32) =
     n.computed[wDim] = needSize
 
 proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
+  ## Calculate line wrapping, stretching, and gap filling of all child nodes of the node on the main axis.
+
   let wDim = dim + 2
 
   let n = c.node
@@ -238,10 +254,8 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
     # count of fillers
     var count = 0
 
-    # count of squeezable elements
-    var squeezedCount = 0
     var total = 0
-    var itemCount = 0
+    var nodeCount = 0
 
     var expandRangeEnd = arrangeRangeEnd
 
@@ -249,15 +263,12 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
     for idx in arrangeRangeBegin ..< arrangeRangeEnd:
       let child = l.caches[idx].node
 
-      inc itemCount, 1
-      var extend = used + child.computed[dim] + child.margin[wDim]
+      inc nodeCount, 1
+      let extend = used + child.computed[dim] + child.margin[wDim] +
+          child.computed[wDim]
 
       if toAxisAlign(child.align, dim) == AxisAlignStretch:
         inc count
-      else:
-        if child.size[dim] <= 0:
-          inc squeezedCount
-        extend = extend + child.computed[wDim]
 
       if wrap:
         # wrap on end of line
@@ -266,17 +277,16 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
 
           # add marker for subsequent queries
           child.isBreak = true
-          itemCount = 0
+          nodeCount = 0
           break
 
-      inc total
+      inc total, 1
       used = extend
 
     let extraSpace = space - used
     var filler = 0f
     var spacer = 0f
     var extraMargin = 0f
-    var eater = 0f
 
     if extraSpace > 0:
       if count > 0:
@@ -284,14 +294,14 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
       elif total > 0:
         case n.mainAxisAlign
         of MainAxisAlignSpaceBetween:
-          if not wrap or (itemCount > 0 or expandRangeEnd != arrangeRangeEnd):
+          if not wrap or nodeCount > 0 or expandRangeEnd != arrangeRangeEnd:
             spacer = extraSpace / float32(total - 1)
         of MainAxisAlignSpaceAround:
-          if not wrap or (itemCount > 0 or expandRangeEnd != arrangeRangeEnd):
+          if not wrap or nodeCount > 0 or expandRangeEnd != arrangeRangeEnd:
             spacer = extraSpace / float32(total)
             extraMargin = spacer / 2
         of MainAxisAlignSpaceEvenly:
-          if not wrap or (itemCount > 0 or expandRangeEnd != arrangeRangeEnd):
+          if not wrap or nodeCount > 0 or expandRangeEnd != arrangeRangeEnd:
             spacer = extraSpace / float32(total + 1)
             extraMargin = spacer
         of MainAxisAlignStart:
@@ -302,10 +312,17 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
           extraMargin = extraSpace / 2
     else:
       if not wrap:
-        if extraSpace < 0 and squeezedCount > 0:
-          eater = extraSpace / float32(squeezedCount)
+        if total > 0:
+          case n.mainAxisAlign
+          of MainAxisAlignSpaceBetween, MainAxisAlignSpaceAround,
+              MainAxisAlignSpaceEvenly, MainAxisAlignStart:
+            discard
+          of MainAxisAlignEnd:
+            extraMargin = extraSpace
+          of MainAxisAlignMiddle:
+            extraMargin = extraSpace / 2
 
-    # distribute width among items
+        # distribute width among items
     var x = computed[dim]
     var x1 = 0f
 
@@ -316,12 +333,9 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
       x += child.computed[dim] + extraMargin
       if toAxisAlign(child.align, dim) == AxisAlignStretch:
         # grow
-        x1 = x + filler
-      elif child.size[dim] > 0:
-        x1 = x + child.computed[wDim]
+        x1 = x + child.computed[wDim] + filler
       else:
-        # squeeze
-        x1 = x + max(0f, child.computed[wDim] + eater)
+        x1 = x + child.computed[wDim]
 
       let ix0 = x
       let ix1 =
@@ -360,7 +374,10 @@ proc arrangeOverlay(l: ptr Context, c: ptr NodeCache, dim: int32) =
     of AxisAlignMiddle:
       child.computed[dim] =
         child.computed[dim] +
-        max(0f, (space - child.computed[wDim]) / 2 - child.margin[wDim])
+        max(0f, (space - child.computed[wDim] - child.margin[dim] -
+            child.margin[wDim]) / 2)
+    of AxisAlignSpaceBetween, AxisAlignSpaceAround, AxisAlignSpaceEvenly:
+      discard
 
     child.computed[dim] = child.computed[dim] + offset
 
@@ -372,9 +389,12 @@ proc arrangeOverlaySqueezedRange(l: ptr Context, dim: int32,
   for idx in squeezedRangeBegin ..< arrangeRangeEnd:
     let child = l.caches[idx].node
     let minSize = max(0f, space - child.computed[dim] - child.margin[wDim])
-    let childAlign = toAxisAlign(child.align, dim)
-    let composeAlign = cast[AxisAlign](ord(childAlign) or ord(inheritedAxisAlign))
-    case composeAlign
+    let align = if len(child.align) != 0:
+        toAxisAlign(child.align, dim)
+      else:
+        inheritedAxisAlign
+
+    case align
     of AxisAlignStretch:
       child.computed[wDim] = minSize
     of AxisAlignStart:
@@ -386,15 +406,21 @@ proc arrangeOverlaySqueezedRange(l: ptr Context, dim: int32,
       child.computed[wDim] = min(child.computed[wDim], minSize)
       child.computed[dim] =
         child.computed[dim] +
-        max(0f, (space - child.computed[wDim]) / 2 - child.margin[wDim])
+        max(0f, (space - child.computed[wDim] - child.margin[dim] -
+            child.margin[wDim]) / 2)
+    of AxisAlignSpaceBetween, AxisAlignSpaceAround, AxisAlignSpaceEvenly:
+      discard
 
     child.computed[dim] = child.computed[dim] + offset
 
 proc arrangeWrappedOverlaySqueezed(l: ptr Context, c: ptr NodeCache,
-    dim: int32): float32 =
+    dim: int32) =
+  ## Calculate stretching and gap filling of all child nodes of the node on the cross axis.
+
   let wDim = dim + 2
 
   let n = c.node
+  let space = n.computed[wDim]
   let inheritedAxisAlign = toAxisAlign(n.layout, n.crossAxisAlign, dim)
 
   var offset = n.computed[dim]
@@ -402,29 +428,74 @@ proc arrangeWrappedOverlaySqueezed(l: ptr Context, c: ptr NodeCache,
 
   var squeezedRangeBegin = c.childOffset
 
+  var lineCount = 1
+  var extraSpace = 0f
+  var extraMargin = 0f
+  var spacer = 0f
+  var filler = 0f
+
+  if n.axisAlign != AxisAlignStart:
+    var used = 0f
+
+    for idx in c.childOffset ..< c.childOffset + c.childCount:
+      let child = l.caches[idx].node
+      if child.isBreak:
+        inc lineCount, 1
+        used = used + needSize
+        needSize = 0
+
+      let childSize = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
+      needSize = max(needSize, childSize)
+
+    used = used + needSize
+    extraSpace = space - used
+    needSize = 0
+
+  case n.axisAlign
+  of AxisAlignMiddle:
+    extraMargin = extraSpace / 2
+  of AxisAlignStart:
+    discard
+  of AxisAlignEnd:
+    extraMargin = extraSpace
+  of AxisAlignStretch:
+    spacer = extraSpace / float32(lineCount)
+    filler = spacer
+  of AxisAlignSpaceBetween:
+    if lineCount > 1:
+      spacer = extraSpace / float32(lineCount - 1)
+  of AxisAlignSpaceAround:
+    spacer = extraSpace / float32(lineCount)
+    extraMargin = spacer / 2
+  of AxisAlignSpaceEvenly:
+    spacer = extraSpace / float32(lineCount + 1)
+    extraMargin = spacer
+
   for idx in c.childOffset ..< c.childOffset + c.childCount:
     let child = l.caches[idx].node
     if child.isBreak:
+      offset = offset + extraMargin
       l.arrangeOverlaySqueezedRange(
-        dim, inheritedAxisAlign, squeezedRangeBegin, idx, offset, needSize
+        dim, inheritedAxisAlign, squeezedRangeBegin, idx, offset, needSize + filler
       )
       offset = offset + needSize
+      extraMargin = spacer
+
       squeezedRangeBegin = idx
       needSize = 0
 
     let childSize = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
     needSize = max(needSize, childSize)
 
+  offset = offset + extraMargin
   l.arrangeOverlaySqueezedRange(
     dim,
     inheritedAxisAlign,
     squeezedRangeBegin,
     c.childOffset + c.childCount,
     offset,
-    needSize,
+    needSize + filler,
   )
-
-  offset + needSize
 
 proc arrange(l: ptr Context, c: ptr NodeCache, dim: int32) =
   let wDim = dim + 2
@@ -434,17 +505,22 @@ proc arrange(l: ptr Context, c: ptr NodeCache, dim: int32) =
   case combine(n.layout, n.wrap)
   of combine(LayoutColumn, WrapWrap):
     if dim > 0:
-      assert n.isSkipXAxis
+      assert n.isDelay
 
-      # The X-axis are recalculated here.
-      l.arrangeStacked(c, 1, true)
-      let offset = l.arrangeWrappedOverlaySqueezed(c, 0)
-      n.computed[2] = offset - n.computed[0]
+      # When the main axis is vertical,
+      # line wrapping affects the x-axis calculation results of all child nodes.
+      # therefore, calculate the y-axis first.
+
+      l.arrangeStacked(c, dim, true)
+      l.arrangeWrappedOverlaySqueezed(c, 0)
   of combine(LayoutRow, WrapWrap):
     if dim > 0:
-      discard l.arrangeWrappedOverlaySqueezed(c, 1)
-    else:
+      assert n.isDelay
+
+      # ditto
+
       l.arrangeStacked(c, 0, true)
+      l.arrangeWrappedOverlaySqueezed(c, dim)
   of combine(LayoutRow, WrapNoWrap), combine(LayoutColumn, WrapNoWrap):
     if isSameAxis(n.layout, dim):
       l.arrangeStacked(c, dim, false)
@@ -467,16 +543,16 @@ proc arrange(l: ptr Context, dim: int32) =
     let n = c.node
 
     if dim <= 0:
-      if not n.isSkipXAxis:
+      if not n.isDelay:
         l.arrange(c, dim)
     else:
       l.arrange(c, dim)
 
-      if n.isSkipXAxis:
+      if n.isDelay:
         l.arrange(c, 0)
 
 proc compute*(l: ptr Context, n: ptr Node) =
-  n.isSkipXAxis = false
+  n.isDelay = false
 
   l.caches.add(NodeCache(node: n))
 
@@ -488,19 +564,19 @@ proc compute*(l: ptr Context, n: ptr Node) =
     let n = l.caches[idx].node
     let childOffset = uint32(l.caches.len)
 
-    if n.layout == LayoutColumn and n.wrap == WrapWrap:
+    if n.wrap == WrapWrap:
       # delayed calculations are required
-      n.isSkipXAxis = true
+      n.isDelay = true
 
     n.isBreak = false
 
     var count = 0
-    let isSkipXAxis = n.isSkipXAxis
+    let isDelay = n.isDelay
 
     for child in l.children(n):
       inc count, 1
 
-      child.isSkipXAxis = isSkipXAxis
+      child.isDelay = isDelay
       l.caches.add(NodeCache(node: child))
 
     let c = l.caches[idx].addr
@@ -513,6 +589,7 @@ proc compute*(l: ptr Context, n: ptr Node) =
     l.calcSize(dim)
     l.arrange(dim)
 
+  # The x-axis index is 0, and the y-axis index is 1
   computeDim(0)
   computeDim(1)
 

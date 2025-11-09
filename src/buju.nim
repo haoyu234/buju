@@ -3,7 +3,7 @@ import std/typetraits
 import ./buju/core
 
 export Context, NodeID, isNil, `$`
-export Align, MainAxisAlign, CrossAxisAlign, Layout, Wrap
+export Align, MainAxisAlign, CrossAxisAlign, AxisAlign, Layout, Wrap
 
 template getAddr(body): auto =
   when NimMajor > 1: body.addr else: body.unsafeAddr
@@ -84,6 +84,11 @@ proc node*(l: var Context): NodeID {.inline, raises: [].} =
 
 proc setLayout*(l: var Context, nodeID: NodeID, layout: Layout) {.inline,
     raises: [].} =
+  ## Set layout mode.
+  ## `LayoutRow`: flex layout, main axis is horizontal.
+  ## `LayoutColumn`: flex layout, main axis is vertical.
+  ## `LayoutFree`: free layout.
+
   let
     l = l.getAddr
     n = l.node(nodeID)
@@ -93,6 +98,10 @@ proc setLayout*(l: var Context, nodeID: NodeID, layout: Layout) {.inline,
 
 proc setAlign*(l: var Context, nodeID: NodeID, align: set[Align]) {.inline,
     raises: [].} =
+  ## Set the node's own alignment direction.
+  ## For example, `AlignTop` behaves as top alignment in all layout modes.
+  ## setting both `AlignTop` and `AlignBottom` results in vertical stretching.
+
   let
     l = l.getAddr
     n = l.node(nodeID)
@@ -102,6 +111,11 @@ proc setAlign*(l: var Context, nodeID: NodeID, align: set[Align]) {.inline,
 
 proc setMainAxisAlign*(l: var Context, nodeID: NodeID,
     mainAxisAlign: MainAxisAlign) {.inline, raises: [].} =
+  ## Set alignment of all child nodes of the node along the main axis.
+  ## For example, `AxisAlignStart` behaves as child nodes' left alignment when the main axis is `LayoutRow`,
+  ## and as child nodes' top alignment when the main axis is `LayoutColumn`.
+  ## Not take effect in `LayoutFree` mode.
+
   let
     l = l.getAddr
     n = l.node(nodeID)
@@ -111,6 +125,12 @@ proc setMainAxisAlign*(l: var Context, nodeID: NodeID,
 
 proc setCrossAxisAlign*(l: var Context, nodeID: NodeID,
     crossAxisAlign: CrossAxisAlign) {.inline, raises: [].} =
+  ## Set alignment of all child nodes of the node along the cross axis.
+  ## For example, `CrossAxisAlignStart` behaves as child nodes' top alignment when the main axis is `LayoutRow`,
+  ## and as child nodes' left alignment when the main axis is `LayoutColumn`.
+  ## When a child node has already set its own alignment, the parent node's crossAxisAlign setting will not take effect
+  ## Not take effect in `LayoutFree` mode.
+
   let
     l = l.getAddr
     n = l.node(nodeID)
@@ -118,7 +138,21 @@ proc setCrossAxisAlign*(l: var Context, nodeID: NodeID,
   if not n.isNil:
     n.crossAxisAlign = crossAxisAlign
 
+proc setAxisAlign*(l: var Context, nodeID: NodeID,
+    axisAlign: AxisAlign) {.inline, raises: [].} =
+  ## Set the alignment between multiple main axes.
+  ## When wrapping occurs, each line serves as a separate main axis.
+
+  let
+    l = l.getAddr
+    n = l.node(nodeID)
+
+  if not n.isNil:
+    n.axisAlign = axisAlign
+
 proc setWrap*(l: var Context, nodeID: NodeID, wrap: Wrap) {.inline, raises: [].} =
+  ## Set whether the node allows child nodes to wrap.
+
   let
     l = l.getAddr
     n = l.node(nodeID)
@@ -153,8 +187,8 @@ proc setMargin*(l: var Context, nodeID: NodeID, margin: array[4,
     n.margin = margin
 
 proc insertChild*(l: var Context, parentID, childID: NodeID) {.inline, raises: [].} =
-  ## Inserts an node into another node, forming a parent - child relationship. An
-  ## node can contain any number of child nodes. Items inserted into a parent are
+  ## Inserts an node into another node, forming a parent - child relationship. 
+  ## An node can contain any number of child nodes. Items inserted into a parent are
   ## put at the end of the ordering, after any existing siblings.
 
   let

@@ -32,6 +32,10 @@ test2 "wrap_row_2":
   l.setWrap(root, WrapWrap)
   l.setMainAxisAlign(root, MainAxisAlignStart)
 
+  # Before `setXxx` was available, these were "hardcoded" default values.
+  l.setAxisAlign(root, AxisAlignStart)
+  l.setCrossAxisAlign(root, CrossAxisAlignStart)
+
   const numItems = 5 * 5
   var items: array[numItems, NodeID]
 
@@ -54,6 +58,9 @@ test2 "wrap_row_3":
   l.setLayout(root, LayoutRow)
   l.setWrap(root, WrapWrap)
   l.setMainAxisAlign(root, MainAxisAlignEnd)
+
+  l.setAxisAlign(root, AxisAlignStart)
+  l.setCrossAxisAlign(root, CrossAxisAlignStart)
 
   const numItems = 5 * 5
   var items: array[numItems, NodeID]
@@ -149,6 +156,9 @@ test2 "wrap_column_2":
   l.setWrap(root, WrapWrap)
   l.setMainAxisAlign(root, MainAxisAlignStart)
 
+  l.setAxisAlign(root, AxisAlignStart)
+  l.setCrossAxisAlign(root, CrossAxisAlignStart)
+
   const numItems = 5 * 5
   var items: array[numItems, NodeID]
 
@@ -172,6 +182,9 @@ test2 "wrap_column_3":
   l.setWrap(root, WrapWrap)
   l.setMainAxisAlign(root, MainAxisAlignEnd)
 
+  l.setAxisAlign(root, AxisAlignStart)
+  l.setCrossAxisAlign(root, CrossAxisAlignStart)
+
   const numItems = 5 * 5
   var items: array[numItems, NodeID]
 
@@ -193,6 +206,9 @@ test2 "wrap_column_4":
   l.setSize(root, [float32(57), 58])
   l.setLayout(root, LayoutColumn)
   l.setWrap(root, WrapWrap)
+
+  l.setAxisAlign(root, AxisAlignStart)
+  l.setCrossAxisAlign(root, CrossAxisAlignStart)
 
   let spacer = l.node()
   l.setSize(spacer, [float32(7), 58])

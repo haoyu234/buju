@@ -5,7 +5,11 @@ import ./utils
 
 test2 "issue_1":
   let root = l.node()
-  l.setSize(root, [float32(200), 200])
+
+  # In the previous implementation, `WrapWrap` caused the node's width to shrink,
+  # the new implementation no longer shrinks in all cases.
+  # Set width to 0 and let the child nodes expand it.
+  l.setSize(root, [float32(0), 200])
   l.setMargin(root, [float32(50), 50, 50, 50])
   l.setLayout(root, LayoutColumn)
   l.setWrap(root, WrapWrap)

@@ -66,11 +66,12 @@ td {
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
-  padding: 2px;
+  padding: 0px 0.5em;
   box-sizing: border-box;
 }
 
 .app {
+  padding: 1em;
   display: flex;
   flex-direction: row;
 }
@@ -83,5 +84,4 @@ td {
   display: flex;
   position: relative;
   box-sizing: border-box;
-  padding: 1em;
 }

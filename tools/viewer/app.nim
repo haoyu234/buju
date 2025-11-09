@@ -16,6 +16,7 @@ type
     layout: Layout
     mainAxisAlign: MainAxisAlign
     crossAxisAlign: CrossAxisAlign
+    axisAlign: AxisAlign
     align: set[Align]
     size: array[2, float32]
     margin: array[4, float32]
@@ -105,6 +106,7 @@ proc getAttr(id: NodeID): NodeAttr =
   result.layout = n.layout
   result.mainAxisAlign = n.mainAxisAlign
   result.crossAxisAlign = n.crossAxisAlign
+  result.axisAlign = n.axisAlign
   result.align = n.align
   result.size = n.size
   result.margin = n.margin
@@ -113,7 +115,7 @@ proc insertChild(parentID, childID: NodeID) =
   l.insertChild(parentID, childID)
   mapping[childID] = parentID
 
-proc removeChild(childID: NodeID) =
+proc removeNode(childID: NodeID) =
   mapping.withValue(childID, parentID):
     if focusId == childID:
       focusId = l.nextSibling(childID)
@@ -122,11 +124,26 @@ proc removeChild(childID: NodeID) =
     l.removeChild(parentID[], childID)
     mapping.del(childID)
 
+proc removeNextSiblings(childID: NodeID) =
+  mapping.withValue(childID, parentID):
+    if focusId == childID:
+      var next = l.nextSibling(childID)
+      while not next.isNil:
+        let n = l.nextSibling(next)
+        l.removeChild(parentID[], next)
+        next = n
+
+      focusId = parentID[]
+
+    l.removeChild(parentID[], childID)
+    mapping.del(childID)
+
 proc updateAttr(n: NodeID, attr: NodeAttr) =
   l.setWrap(n, attr.wrap)
   l.setLayout(n, attr.layout)
   l.setMainAxisAlign(n, attr.mainAxisAlign)
   l.setCrossAxisAlign(n, attr.crossAxisAlign)
+  l.setAxisAlign(n, attr.axisAlign)
   l.setAlign(n, attr.align)
   l.setSize(n, attr.size)
   l.setMargin(n, attr.margin)
@@ -250,6 +267,22 @@ proc viewerH5(): VNode =
     of MainAxisAlignSpaceEvenly:
       result.setAttr(StyleAttr.justifyContent, "space-evenly")
 
+    case attr.axisAlign
+    of AxisAlignMiddle:
+      result.setAttr(StyleAttr.alignContent, "center")
+    of AxisAlignStart:
+      result.setAttr(StyleAttr.alignContent, "flex-start")
+    of AxisAlignEnd:
+      result.setAttr(StyleAttr.alignContent, "flex-end")
+    of AxisAlignStretch:
+      result.setAttr(StyleAttr.alignContent, "stretch")
+    of AxisAlignSpaceBetween:
+      result.setAttr(StyleAttr.alignContent, "space-between")
+    of AxisAlignSpaceAround:
+      result.setAttr(StyleAttr.alignContent, "space-around")
+    of AxisAlignSpaceEvenly:
+      result.setAttr(StyleAttr.alignContent, "space-evenly")
+
     case attr.crossAxisAlign
     of CrossAxisAlignMiddle:
       result.setAttr(StyleAttr.alignItems, "center")
@@ -334,12 +367,14 @@ proc numberEntry[T](name: string, val: T, onChanged: proc(v: T)): VNode =
           `type` = "number",
           value = $val,
           style = style(
-            [(StyleAttr.width, kstring("5em")), (StyleAttr.cssFloat, kstring("right"))]
+            [(StyleAttr.width, kstring("5em")), (StyleAttr.marginLeft, kstring("1em"))]
           ),
           onblur = onEnter,
         )
 
-proc radioGroup[T](current: T, values: openArray[T], onClick: proc(v: T)): VNode =
+proc radioGroup[T](
+    name: string, val: T, values: openArray[T], onClick: proc(v: T)
+): VNode =
   buildHtml:
     tdiv:
       for v in values:
@@ -349,13 +384,11 @@ proc radioGroup[T](current: T, values: openArray[T], onClick: proc(v: T)): VNode
 
         li:
           label:
-            input(
-              `type` = "radio", name = $T, checked = v == current, onClick = onClick
-            )
+            input(`type` = "radio", name = name, checked = v == val, onClick = onClick)
             text trim($v, T)
 
 proc checkboxGroup[T](
-    current: set[T], values: openArray[T], onClick: proc(v: T)
+    name: string, val: set[T], values: openArray[T], onClick: proc(v: T)
 ): VNode =
   buildHtml:
     tdiv:
@@ -367,17 +400,18 @@ proc checkboxGroup[T](
         li:
           label:
             input(
-              `type` = "checkbox", name = $T, checked = v in current, onClick = onClick
+              `type` = "checkbox", name = name, checked = v in val, onClick = onClick
             )
             text trim($v, T)
 
-proc layoutOpts(attr: NodeAttr): VNode =
+proc setLayout(attr: NodeAttr): VNode =
   buildHtml:
     section(class = "group"):
       span(class = "title"):
         text "Layout"
 
       radioGroup(
+        "Layout",
         attr.layout,
         collect do:
           for layout in Layout:
@@ -399,13 +433,14 @@ proc layoutOpts(attr: NodeAttr): VNode =
 
         text "Wrap"
 
-proc alignOpts(attr: NodeAttr): VNode =
+proc setAlign(attr: NodeAttr): VNode =
   buildHtml:
     section(class = "group"):
       span(class = "title"):
         text "Align"
 
       checkboxGroup(
+        "Align",
         attr.align,
         [AlignLeft, AlignTop, AlignRight, AlignBottom],
         proc(align: Align) =
@@ -415,13 +450,14 @@ proc alignOpts(attr: NodeAttr): VNode =
             l.setAlign(focusId, attr.align + {align}),
       )
 
-proc mainAxisAlignOpts(attr: NodeAttr): VNode =
+proc setMainAxisAlign(attr: NodeAttr): VNode =
   buildHtml:
     section(class = "group"):
       span(class = "title"):
         text "MainAxisAlign"
 
       radioGroup(
+        "MainAxisAlign",
         attr.mainAxisAlign,
         [
           MainAxisAlignMiddle, MainAxisAlignStart, MainAxisAlignEnd,
@@ -431,13 +467,14 @@ proc mainAxisAlignOpts(attr: NodeAttr): VNode =
           l.setMainAxisAlign(focusId, mainAxisAlign),
       )
 
-proc crossAxisAlignOpts(attr: NodeAttr): VNode =
+proc setCrossAxisAlign(attr: NodeAttr): VNode =
   buildHtml:
     section(class = "group"):
       span(class = "title"):
         text "CrossAxisAlign"
 
       radioGroup(
+        "CrossAxisAlign",
         attr.crossAxisAlign,
         [
           CrossAxisAlignMiddle, CrossAxisAlignStart, CrossAxisAlignEnd,
@@ -447,7 +484,24 @@ proc crossAxisAlignOpts(attr: NodeAttr): VNode =
           l.setCrossAxisAlign(focusId, crossAxisAlign),
       )
 
-proc sizeMarginOpts(attr: NodeAttr): VNode =
+proc setAxisAlign(attr: NodeAttr): VNode =
+  buildHtml:
+    section(class = "group"):
+      span(class = "title"):
+        text "AxisAlign"
+
+      radioGroup(
+        "AxisAlign",
+        attr.axisAlign,
+        [
+          AxisAlignMiddle, AxisAlignStart, AxisAlignEnd, AxisAlignStretch,
+          AxisAlignSpaceBetween, AxisAlignSpaceAround, AxisAlignSpaceEvenly,
+        ],
+        proc(axisAlign: AxisAlign) =
+          l.setAxisAlign(focusId, axisAlign),
+      )
+
+proc setSizeMargin(attr: NodeAttr): VNode =
   buildHtml:
     section(class = "group"):
       span(class = "title"):
@@ -474,20 +528,6 @@ proc sizeMarginOpts(attr: NodeAttr): VNode =
             l.setMargin(focusId, margin)
 
         numberEntry(marginProps[idx], attr.margin[idx], onChanged = onChanged)
-
-proc tools(): VNode =
-  buildHtml:
-    section(class = "group"):
-      button(class = "tool"):
-        proc onclick() =
-          insertChild(focusId, createNode(defaultAttr))
-
-        text "+"
-      button(class = "tool"):
-        proc onclick() =
-          removeChild(focusId)
-
-        text "-"
 
 proc buttons(): VNode =
   proc toClass(n: NodeID): string =
@@ -516,6 +556,33 @@ proc createDom(): VNode =
             text "importJson"
           button(class = "tool", onclick = exportJson):
             text "exportJson"
+
+          section(
+            class = "tools",
+            style = style(
+              [
+                (StyleAttr.display, kstring("inline-block")),
+                (StyleAttr.marginLeft, kstring("2em")),
+              ]
+            ),
+          ):
+            button(class = "tool"):
+              proc onclick() =
+                insertChild(focusId, createNode(defaultAttr))
+
+              text "+"
+
+            button(class = "tool"):
+              proc onclick() =
+                removeNode(focusId)
+
+              text "-"
+
+            button(class = "tool"):
+              proc onclick() =
+                removeNextSiblings(focusId)
+
+              text ">"
 
         section(class = "tools"):
           span(class = "title"):
@@ -561,19 +628,23 @@ proc createDom(): VNode =
           tbody:
             tr:
               td(colspan = "2"):
-                sizeMarginOpts(attr)
+                setSizeMargin(attr)
             tr:
               td:
-                layoutOpts(attr)
+                setLayout(attr)
               td:
-                alignOpts(attr)
+                setAlign(attr)
+
             tr:
               td:
-                mainAxisAlignOpts(attr)
+                setMainAxisAlign(attr)
               td:
-                crossAxisAlignOpts(attr)
-        section(class = "tools"):
-          tools()
+                setCrossAxisAlign(attr)
+
+            tr:
+              td(colspan = "2"):
+                setAxisAlign(attr)
+
         section(class = "buttons"):
           buttons()
 
@@ -586,7 +657,7 @@ proc createDom(): VNode =
             of Html5:
               viewerH5()
 
-rootId = createNode(NodeAttr(layout: LayoutRow, size: [500, 500]))
+rootId = createNode(NodeAttr(layout: LayoutRow, size: [400, 400]))
 focusId = rootId
 
 setRenderer createDom
