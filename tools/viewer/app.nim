@@ -21,12 +21,12 @@ type
     margin: array[4, float32]
 
   Mode = enum
-    H5
     Buju
+    Html5
 
 var
   l = Context()
-  mode = Buju
+  modes = {Buju}
   rootId = default(NodeID)
   focusId = default(NodeID)
   mapping = initTable[NodeID, NodeID]()
@@ -151,8 +151,6 @@ iterator nodes(id: NodeID): NodeID =
     inc idx, 1
 
 proc viewerBuju(): VNode =
-  l.compute(rootId)
-
   proc toClass(n: NodeID): string =
     if n == focusId: "node focus" else: "node"
 
@@ -166,32 +164,34 @@ proc viewerBuju(): VNode =
       (StyleAttr.zIndex, kstring($zIndex)),
     )
 
-  buildHtml:
-    section:
-      tdiv(
-        style = style(
-          (StyleAttr.position, kstring("absolute")),
-          (StyleAttr.boxSizing, kstring("border-box")),
-        )
-      ):
-        for n in nodes(rootId):
-          let onClick = capture n:
-            proc(e: Event, vn: VNode) =
-              focusId = n
-              e.stopPropagation()
+  let xywh = l.computed(rootId)
 
-          let xywh = l.computed(n)
-          tdiv(
-            class = kstring(toClass(n)),
-            style = toStyle(xywh, int32(n)),
-            onClick = onClick,
-          ):
-            tdiv(class = "label"):
-              text($cast[int32](n))
+  buildHtml:
+    section(
+      style = style(
+        [
+          (StyleAttr.position, kstring("relative")),
+          (StyleAttr.width, toPixelSize(xywh[2])),
+          (StyleAttr.height, toPixelSize(xywh[3])),
+        ]
+      )
+    ):
+      for n in nodes(rootId):
+        let onClick = capture n:
+          proc(e: Event, vn: VNode) =
+            focusId = n
+            e.stopPropagation()
+
+        let xywh = l.computed(n)
+        tdiv(
+          class = kstring(toClass(n)),
+          style = toStyle(xywh, int32(n)),
+          onClick = onClick,
+        ):
+          tdiv(class = "label"):
+            text $cast[int32](n)
 
 proc viewerH5(): VNode =
-  l.compute(rootId)
-
   proc toClass(n: NodeID): string =
     if n == focusId: "node focus" else: "node"
 
@@ -199,8 +199,6 @@ proc viewerH5(): VNode =
       attr: NodeAttr, parentAttr: NodeAttr, xywh: array[4, float32], zIndex: int32
   ): VStyle =
     result = style(
-      (StyleAttr.width, toPixelSize(attr.size[0])),
-      (StyleAttr.height, toPixelSize(attr.size[1])),
       (StyleAttr.marginLeft, toPixelSize(attr.margin[0])),
       (StyleAttr.marginTop, toPixelSize(attr.margin[1])),
       (StyleAttr.marginRight, toPixelSize(attr.margin[2])),
@@ -209,6 +207,16 @@ proc viewerH5(): VNode =
       (StyleAttr.flexShrink, kstring("0")),
       (StyleAttr.zIndex, kstring($zIndex)),
     )
+
+    if attr.size[0] > 0:
+      result.setAttr(StyleAttr.width, toPixelSize(attr.size[0]))
+    else:
+      result.setAttr(StyleAttr.flexGrow, "1")
+
+    if attr.size[1] > 0:
+      result.setAttr(StyleAttr.height, toPixelSize(attr.size[1]))
+    else:
+      result.setAttr(StyleAttr.flexGrow, "1")
 
     case attr.layout
     of LayoutRow:
@@ -291,15 +299,14 @@ proc viewerH5(): VNode =
         onClick = onClick,
       ):
         tdiv(class = "label"):
-          text($cast[int32](n))
+          text $cast[int32](n)
 
         for child in l.children(n):
           createNode(child, attr)
 
   buildHtml:
     section:
-      tdiv:
-        createNode(rootId, NodeAttr())
+      createNode(rootId, NodeAttr())
 
 proc numberEntry[T](name: string, val: T, onChanged: proc(v: T)): VNode =
   proc onEnter(e: Event, vn: VNode) =
@@ -311,7 +318,7 @@ proc numberEntry[T](name: string, val: T, onChanged: proc(v: T)): VNode =
   buildHtml:
     li:
       label:
-        text(name)
+        text name
         input(
           id = name,
           `type` = "number",
@@ -335,7 +342,7 @@ proc radioGroup[T](current: T, values: openArray[T], onClick: proc(v: T)): VNode
             input(
               `type` = "radio", name = $T, checked = v == current, onClick = onClick
             )
-            text(trim($v, T))
+            text trim($v, T)
 
 proc checkboxGroup[T](
     current: set[T], values: openArray[T], onClick: proc(v: T)
@@ -352,13 +359,13 @@ proc checkboxGroup[T](
             input(
               `type` = "checkbox", name = $T, checked = v in current, onClick = onClick
             )
-            text(trim($v, T))
+            text trim($v, T)
 
 proc layoutOpts(attr: NodeAttr): VNode =
   buildHtml:
     section(class = "group"):
       span(class = "title"):
-        text("Layout")
+        text "Layout"
 
       radioGroup(
         attr.layout,
@@ -380,13 +387,13 @@ proc layoutOpts(attr: NodeAttr): VNode =
               ,
             )
 
-        text("Wrap")
+        text "Wrap"
 
 proc alignOpts(attr: NodeAttr): VNode =
   buildHtml:
     section(class = "group"):
-      span(class = "name"):
-        text("Align")
+      span(class = "title"):
+        text "Align"
 
       checkboxGroup(
         attr.align,
@@ -401,8 +408,8 @@ proc alignOpts(attr: NodeAttr): VNode =
 proc mainAxisAlignOpts(attr: NodeAttr): VNode =
   buildHtml:
     section(class = "group"):
-      span(class = "name"):
-        text("MainAxisAlign")
+      span(class = "title"):
+        text "MainAxisAlign"
 
       radioGroup(
         attr.mainAxisAlign,
@@ -417,8 +424,8 @@ proc mainAxisAlignOpts(attr: NodeAttr): VNode =
 proc crossAxisAlignOpts(attr: NodeAttr): VNode =
   buildHtml:
     section(class = "group"):
-      span(class = "name"):
-        text("CrossAxisAlign")
+      span(class = "title"):
+        text "CrossAxisAlign"
 
       radioGroup(
         attr.crossAxisAlign,
@@ -433,8 +440,8 @@ proc crossAxisAlignOpts(attr: NodeAttr): VNode =
 proc sizeMarginOpts(attr: NodeAttr): VNode =
   buildHtml:
     section(class = "group"):
-      span(class = "name"):
-        text("Size")
+      span(class = "title"):
+        text "Size"
 
       const
         sizeProps = ["Width", "Height"]
@@ -465,12 +472,12 @@ proc tools(): VNode =
         proc onclick() =
           insertChild(focusId, createNode(defaultAttr))
 
-        text("+")
+        text "+"
       button(class = "tool"):
         proc onclick() =
           removeChild(focusId)
 
-        text("-")
+        text "-"
 
 proc buttons(): VNode =
   proc toClass(n: NodeID): string =
@@ -484,72 +491,90 @@ proc buttons(): VNode =
             focusId = n
 
         button(class = toClass(n), onclick = onClick):
-          text($cast[int32](n))
+          text $cast[int32](n)
 
 proc createDom(): VNode =
+  l.compute(rootId)
+
   result = buildHtml(tdiv):
-    section(
-      class = "editor", style = style([(StyleAttr.display, kstring("inline-block"))])
-    ):
-      section(class = "tools"):
-        button(class = "tool", onclick = importJson):
-          text "importJson"
-        button(class = "tool", onclick = exportJson):
-          text "exportJson"
+    section(class = "app"):
+      section(
+        class = "editor", style = style([(StyleAttr.display, kstring("inline-block"))])
+      ):
+        section(class = "tools"):
+          button(class = "tool", onclick = importJson):
+            text "importJson"
+          button(class = "tool", onclick = exportJson):
+            text "exportJson"
 
-        button(class = "tool"):
-          proc onclick() =
-            case mode
-            of H5:
-              mode = Buju
+        section(class = "tools"):
+          span(class = "title"):
+            text "Mode"
+
+          for val in [Buju, Html5]:
+            let onClick = capture val:
+              proc() =
+                if val in modes:
+                  modes.excl(val)
+                else:
+                  modes.incl(val)
+
+            label:
+              input(
+                `type` = "checkbox",
+                name = $val,
+                checked = val in modes,
+                onclick = onClick,
+              )
+              text ($val).toLowerAscii
+
+        section(class = "tools"):
+          span(class = "title"):
+            text "Scale"
+
+          for val in [1, 2, 5, 10, 25]:
+            let onClick = capture val:
+              proc() =
+                scale = val
+
+            let class = if val == scale: "tool focus" else: "tool"
+
+            button(class = class, onclick = onClick):
+              text "x" & $val
+
+        section(class = "options"):
+          let attr = getAttr(focusId)
+          thead:
+            tr:
+              th()
+              th()
+          tbody:
+            tr:
+              td(colspan = "2"):
+                sizeMarginOpts(attr)
+            tr:
+              td:
+                layoutOpts(attr)
+              td:
+                alignOpts(attr)
+            tr:
+              td:
+                mainAxisAlignOpts(attr)
+              td:
+                crossAxisAlignOpts(attr)
+        section(class = "tools"):
+          tools()
+        section(class = "buttons"):
+          buttons()
+
+      for val in [Buju, Html5]:
+        if val in modes:
+          section(class = "viewer"):
+            case val
             of Buju:
-              mode = H5
-
-          text($mode)
-
-      section(class = "tools"):
-        for val in [1, 2, 5, 10, 25]:
-          let onClick = capture val:
-            proc() =
-              scale = val
-
-          let class = if val == scale: "tool focus" else: "tool"
-
-          button(class = class, onclick = onClick):
-            text("x" & $val)
-
-      section(class = "options"):
-        let attr = getAttr(focusId)
-        thead:
-          tr:
-            th()
-            th()
-        tbody:
-          tr:
-            td(colspan = "2"):
-              sizeMarginOpts(attr)
-          tr:
-            td:
-              layoutOpts(attr)
-            td:
-              alignOpts(attr)
-          tr:
-            td:
-              mainAxisAlignOpts(attr)
-            td:
-              crossAxisAlignOpts(attr)
-      section(class = "tools"):
-        tools()
-      section(class = "buttons"):
-        buttons()
-    section(
-      class = "viewer", style = style([(StyleAttr.display, kstring("inline-block"))])
-    ):
-      case mode
-      of H5:
-        viewerH5()
-      of Buju:
-        viewerBuju()
+              viewerBuju()
+            of Html5:
+              viewerH5()
 
 rootId = createNode(NodeAttr(layout: LayoutRow, size: [500, 500]))
 focusId = rootId
