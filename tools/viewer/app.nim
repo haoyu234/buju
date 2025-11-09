@@ -315,7 +315,7 @@ proc viewerH5(): VNode =
           createNode(child, attr)
 
   buildHtml:
-    section:
+    section(style = style([(StyleAttr.display, kstring("flex"))])):
       createNode(rootId, NodeAttr())
 
 proc numberEntry[T](name: string, val: T, onChanged: proc(v: T)): VNode =

@@ -8,12 +8,12 @@ td {
 }
 
 .node {
-  box-shadow: 0 0 0 1px #000;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
   box-sizing: border-box;
+  overflow: visible;
 }
 
 .label {
@@ -22,14 +22,20 @@ td {
   left: 0px;
 }
 
-.focus {
-  box-shadow:
-    0px 0px 10px #008000;
+.node::before {
+  overflow: visible;
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 1px solid black;
 }
 
-.node.focus {
+.focus.node::before {
+  border: 1px solid #008000;
   box-shadow:
-    0 0 0 1px #000,
     0px 0px 10px #008000;
 }
 
@@ -47,6 +53,11 @@ td {
 
 .tools {
   margin: 6px 0px;
+}
+
+.focus.tool {
+  box-shadow:
+    0px 0px 10px #008000;
 }
 
 .tool {
