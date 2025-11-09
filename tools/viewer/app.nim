@@ -82,11 +82,17 @@ proc exportJson() =
   download(json.cstring, "application/json".cstring, "buju.json".cstring)
 
 proc importJson() =
+  proc updateMapping(id: NodeID) =
+    for n in l.children(id):
+      mapping[n] = id
+      updateMapping(n)
+
   upload:
     proc(data: cstring) =
       l.clear()
       rootId = l.loadJson($data)
       focusId = rootId
+      updateMapping(rootId)
       redraw()
 
 proc getAttr(id: NodeID): NodeAttr =
