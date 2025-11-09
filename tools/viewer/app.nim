@@ -216,13 +216,9 @@ proc viewerH5(): VNode =
 
     if attr.size[0] > 0:
       result.setAttr(StyleAttr.width, toPixelSize(attr.size[0]))
-    else:
-      result.setAttr(StyleAttr.flexGrow, "1")
 
     if attr.size[1] > 0:
       result.setAttr(StyleAttr.height, toPixelSize(attr.size[1]))
-    else:
-      result.setAttr(StyleAttr.flexGrow, "1")
 
     case attr.layout
     of LayoutRow:
@@ -269,23 +265,31 @@ proc viewerH5(): VNode =
       of AlignLeft, AlignTop: "flex-start"
       of AlignRight, AlignBottom: "flex-end"
 
+    const
+      V = {AlignTop, AlignBottom}
+      H = {AlignLeft, AlignRight}
+
     case parentAttr.layout
     of LayoutRow:
-      var n = 0
-      for a in [AlignTop, AlignBottom]:
-        if a in attr.align:
-          inc n, 1
-          result.setAttr(StyleAttr.alignSelf, a.toCssAlign)
-      if n == 2:
+      let align = attr.align * V
+      if len(align) == len(V):
         result.setAttr(StyleAttr.alignSelf, "stretch")
+      else:
+        for a in align:
+          result.setAttr(StyleAttr.alignSelf, a.toCssAlign)
+
+      if attr.align * H == H:
+        result.setAttr(StyleAttr.flexGrow, "1")
     of LayoutColumn:
-      var n = 0
-      for a in [AlignLeft, AlignRight]:
-        if a in attr.align:
-          inc n, 1
-          result.setAttr(StyleAttr.alignSelf, a.toCssAlign)
-      if n == 2:
+      let align = attr.align * H
+      if len(align) == len(H):
         result.setAttr(StyleAttr.alignSelf, "stretch")
+      else:
+        for a in align:
+          result.setAttr(StyleAttr.alignSelf, a.toCssAlign)
+
+      if attr.align * V == V:
+        result.setAttr(StyleAttr.flexGrow, "1")
     of LayoutFree:
       discard
 
