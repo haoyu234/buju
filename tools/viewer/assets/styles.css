@@ -71,7 +71,7 @@ td {
 }
 
 .app {
-  padding: 1em;
+  padding: 0 1em;
   display: flex;
   flex-direction: row;
 }
@@ -84,4 +84,5 @@ td {
   display: flex;
   position: relative;
   box-sizing: border-box;
+  padding: 1em 2em;
 }

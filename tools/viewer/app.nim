@@ -7,8 +7,7 @@ import std/sugar
 import std/strutils
 import std/jsffi
 
-include karax/prelude
-import karax/[kdom, vstyles]
+import karax/[kbase, karax, karaxdsl, vdom, jstrutils, kdom, vstyles]
 
 type
   NodeAttr = object
@@ -16,7 +15,7 @@ type
     layout: Layout
     mainAxisAlign: MainAxisAlign
     crossAxisAlign: CrossAxisAlign
-    axisAlign: AxisAlign
+    crossAxisLineAlign: CrossAxisLineAlign
     align: set[Align]
     size: array[2, float32]
     margin: array[4, float32]
@@ -106,7 +105,7 @@ proc getAttr(id: NodeID): NodeAttr =
   result.layout = n.layout
   result.mainAxisAlign = n.mainAxisAlign
   result.crossAxisAlign = n.crossAxisAlign
-  result.axisAlign = n.axisAlign
+  result.crossAxisLineAlign = n.crossAxisLineAlign
   result.align = n.align
   result.size = n.size
   result.margin = n.margin
@@ -143,7 +142,7 @@ proc updateAttr(n: NodeID, attr: NodeAttr) =
   l.setLayout(n, attr.layout)
   l.setMainAxisAlign(n, attr.mainAxisAlign)
   l.setCrossAxisAlign(n, attr.crossAxisAlign)
-  l.setAxisAlign(n, attr.axisAlign)
+  l.setCrossAxisLineAlign(n, attr.crossAxisLineAlign)
   l.setAlign(n, attr.align)
   l.setSize(n, attr.size)
   l.setMargin(n, attr.margin)
@@ -267,20 +266,20 @@ proc viewerH5(): VNode =
     of MainAxisAlignSpaceEvenly:
       result.setAttr(StyleAttr.justifyContent, "space-evenly")
 
-    case attr.axisAlign
-    of AxisAlignMiddle:
+    case attr.crossAxisLineAlign
+    of CrossAxisLineAlignMiddle:
       result.setAttr(StyleAttr.alignContent, "center")
-    of AxisAlignStart:
+    of CrossAxisLineAlignStart:
       result.setAttr(StyleAttr.alignContent, "flex-start")
-    of AxisAlignEnd:
+    of CrossAxisLineAlignEnd:
       result.setAttr(StyleAttr.alignContent, "flex-end")
-    of AxisAlignStretch:
+    of CrossAxisLineAlignStretch:
       result.setAttr(StyleAttr.alignContent, "stretch")
-    of AxisAlignSpaceBetween:
+    of CrossAxisLineAlignSpaceBetween:
       result.setAttr(StyleAttr.alignContent, "space-between")
-    of AxisAlignSpaceAround:
+    of CrossAxisLineAlignSpaceAround:
       result.setAttr(StyleAttr.alignContent, "space-around")
-    of AxisAlignSpaceEvenly:
+    of CrossAxisLineAlignSpaceEvenly:
       result.setAttr(StyleAttr.alignContent, "space-evenly")
 
     case attr.crossAxisAlign
@@ -293,10 +292,10 @@ proc viewerH5(): VNode =
     of CrossAxisAlignStretch:
       result.setAttr(StyleAttr.alignItems, "stretch")
 
-    proc toCssAlign(a: Align): string =
+    proc toCssAlign(a: Align): kstring =
       case a
-      of AlignLeft, AlignTop: "flex-start"
-      of AlignRight, AlignBottom: "flex-end"
+      of AlignLeft, AlignTop: kstring("flex-start")
+      of AlignRight, AlignBottom: kstring("flex-end")
 
     const
       V = {AlignTop, AlignBottom}
@@ -308,8 +307,10 @@ proc viewerH5(): VNode =
       if len(align) == len(V):
         result.setAttr(StyleAttr.alignSelf, "stretch")
       else:
-        for a in align:
-          result.setAttr(StyleAttr.alignSelf, a.toCssAlign)
+        for a in [AlignTop, AlignBottom]:
+          if a in align:
+            result.setAttr(StyleAttr.alignSelf, a.toCssAlign)
+            break
 
       if attr.align * H == H:
         result.setAttr(StyleAttr.flexGrow, "1")
@@ -318,8 +319,10 @@ proc viewerH5(): VNode =
       if len(align) == len(H):
         result.setAttr(StyleAttr.alignSelf, "stretch")
       else:
-        for a in align:
-          result.setAttr(StyleAttr.alignSelf, a.toCssAlign)
+        for a in [AlignLeft, AlignRight]:
+          if a in align:
+            result.setAttr(StyleAttr.alignSelf, a.toCssAlign)
+            break
 
       if attr.align * V == V:
         result.setAttr(StyleAttr.flexGrow, "1")
@@ -365,7 +368,7 @@ proc numberEntry[T](name: string, val: T, onChanged: proc(v: T)): VNode =
         input(
           id = name,
           `type` = "number",
-          value = $val,
+          value = kstring($val),
           style = style(
             [(StyleAttr.width, kstring("5em")), (StyleAttr.marginLeft, kstring("1em"))]
           ),
@@ -384,7 +387,8 @@ proc radioGroup[T](
 
         li:
           label:
-            input(`type` = "radio", name = name, checked = v == val, onClick = onClick)
+            input(`type` = "radio", name = name, checked = v == val,
+                onClick = onClick)
             text trim($v, T)
 
 proc checkboxGroup[T](
@@ -400,7 +404,8 @@ proc checkboxGroup[T](
         li:
           label:
             input(
-              `type` = "checkbox", name = name, checked = v in val, onClick = onClick
+              `type` = "checkbox", name = name, checked = v in val,
+              onClick = onClick
             )
             text trim($v, T)
 
@@ -414,10 +419,10 @@ proc setLayout(attr: NodeAttr): VNode =
         "Layout",
         attr.layout,
         collect do:
-          for layout in Layout:
-            layout,
+        for layout in Layout:
+          layout,
         proc(layout: Layout) =
-          l.setLayout(focusId, layout),
+        l.setLayout(focusId, layout),
       )
 
       label:
@@ -461,7 +466,8 @@ proc setMainAxisAlign(attr: NodeAttr): VNode =
         attr.mainAxisAlign,
         [
           MainAxisAlignMiddle, MainAxisAlignStart, MainAxisAlignEnd,
-          MainAxisAlignSpaceBetween, MainAxisAlignSpaceAround, MainAxisAlignSpaceEvenly,
+          MainAxisAlignSpaceBetween, MainAxisAlignSpaceAround,
+          MainAxisAlignSpaceEvenly,
         ],
         proc(mainAxisAlign: MainAxisAlign) =
           l.setMainAxisAlign(focusId, mainAxisAlign),
@@ -484,21 +490,22 @@ proc setCrossAxisAlign(attr: NodeAttr): VNode =
           l.setCrossAxisAlign(focusId, crossAxisAlign),
       )
 
-proc setAxisAlign(attr: NodeAttr): VNode =
+proc setCrossAxisLineAlign(attr: NodeAttr): VNode =
   buildHtml:
     section(class = "group"):
       span(class = "title"):
-        text "AxisAlign"
+        text "CrossAxisLineAlign"
 
       radioGroup(
-        "AxisAlign",
-        attr.axisAlign,
+        "CrossAxisLineAlign",
+        attr.crossAxisLineAlign,
         [
-          AxisAlignMiddle, AxisAlignStart, AxisAlignEnd, AxisAlignStretch,
-          AxisAlignSpaceBetween, AxisAlignSpaceAround, AxisAlignSpaceEvenly,
+          CrossAxisLineAlignMiddle, CrossAxisLineAlignStart, CrossAxisLineAlignEnd,
+          CrossAxisLineAlignStretch, CrossAxisLineAlignSpaceBetween,
+          CrossAxisLineAlignSpaceAround, CrossAxisLineAlignSpaceEvenly,
         ],
-        proc(axisAlign: AxisAlign) =
-          l.setAxisAlign(focusId, axisAlign),
+        proc(crossAxisLineAlign: CrossAxisLineAlign) =
+          l.setCrossAxisLineAlign(focusId, crossAxisLineAlign),
       )
 
 proc setSizeMargin(attr: NodeAttr): VNode =
@@ -540,7 +547,7 @@ proc buttons(): VNode =
           proc() =
             focusId = n
 
-        button(class = toClass(n), onclick = onClick):
+        button(class = kstring(toClass(n)), onclick = onClick):
           text $cast[int32](n)
 
 proc createDom(): VNode =
@@ -549,7 +556,8 @@ proc createDom(): VNode =
   result = buildHtml(tdiv):
     section(class = "app"):
       section(
-        class = "editor", style = style([(StyleAttr.display, kstring("inline-block"))])
+        class = "editor", style = style([(StyleAttr.display, kstring(
+            "inline-block"))])
       ):
         section(class = "tools"):
           button(class = "tool", onclick = importJson):
@@ -599,7 +607,7 @@ proc createDom(): VNode =
             label:
               input(
                 `type` = "checkbox",
-                name = $val,
+                name = kstring($val),
                 checked = val in modes,
                 onclick = onClick,
               )
@@ -616,7 +624,7 @@ proc createDom(): VNode =
 
             let class = if val == scale: "tool focus" else: "tool"
 
-            button(class = class, onclick = onClick):
+            button(class = kstring(class), onclick = onClick):
               text "x" & $val
 
         section(class = "options"):
@@ -643,7 +651,7 @@ proc createDom(): VNode =
 
             tr:
               td(colspan = "2"):
-                setAxisAlign(attr)
+                setCrossAxisLineAlign(attr)
 
         section(class = "buttons"):
           buttons()

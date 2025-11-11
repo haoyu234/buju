@@ -1,74 +1,95 @@
 import std/strformat
 
 type
-  NodeID* {.size: 4.} = enum ## Node id, avoid using pointers and references
+  NodeID* {.size: 4.} = enum
+    ## Node identifier (avoids using pointers/references for safety and simplicity).
+
     NIL
 
   NodeCache = object
+    ## Cache for breadth-first traversal results (optimizes child node access).
+
     node: ptr Node
-    childOffset: uint32
-    childCount: uint32
+    childOffset: uint32 ## Starting index of the node's children in the cache.
+    childCount: uint32  ## Count of direct children of the cached node.
 
   Align* = enum
+    ## Absolute directional alignment for a single node (axis-agnostic, supports combination).
+    ## Purpose: Aligns node by fixed directions (left/top/right/bottom) within parent container, independent of main/cross axis.
+
     AlignLeft = 0x01
     AlignTop = 0x02
     AlignRight = 0x04
     AlignBottom = 0x08
 
-  MainAxisAlign* = enum
-    ## justify-content.
-    ## Controls the alignment of all nodes on the main axis.
-
-    MainAxisAlignMiddle = 0x00
-    MainAxisAlignStart = 0x01
-    MainAxisAlignEnd = 0x02
-    MainAxisAlignSpaceBetween = 0x08
-    MainAxisAlignSpaceAround = 0x10
-    MainAxisAlignSpaceEvenly = 0x18
-
-  AxisAlign* = enum
-    ## align-content.
-    ## Controls the space between flex lines on the cross axis.
+  AxisAlign = enum
+    ## Axis-dependent alignment.
 
     AxisAlignMiddle = 0x00
     AxisAlignStart = 0x01
     AxisAlignEnd = 0x04
     AxisAlignStretch = 0x05
-    AxisAlignSpaceBetween = 0x08
-    AxisAlignSpaceAround = 0x10
-    AxisAlignSpaceEvenly = 0x18
+
+  MainAxisAlign* = enum
+    ## Corresponding to Flex layout's `justify-content`.
+    ## Controls the alignment of all nodes on the main axis.
+
+    MainAxisAlignMiddle = AxisAlignMiddle
+    MainAxisAlignStart = AxisAlignStart
+    MainAxisAlignEnd = AxisAlignEnd
+    MainAxisAlignSpaceBetween = 0x08
+    MainAxisAlignSpaceAround = 0x10
+    MainAxisAlignSpaceEvenly = 0x18
 
   CrossAxisAlign* = enum
-    ## align-items.
+    ## Corresponding to Flex layout's `align-items`.
     ## Controls the alignment of all nodes on the cross axis.
 
-    CrossAxisAlignMiddle = 0x00
-    CrossAxisAlignStart = 0x01
-    CrossAxisAlignEnd = 0x04
-    CrossAxisAlignStretch = 0x05
+    CrossAxisAlignMiddle = AxisAlignMiddle
+    CrossAxisAlignStart = AxisAlignStart
+    CrossAxisAlignEnd = AxisAlignEnd
+    CrossAxisAlignStretch = AxisAlignStretch
+
+  CrossAxisLineAlign* = enum
+    ## Corresponding to Flex layout's `align-content`.
+    ## Controls alignment and spacing of multiple flex lines along the cross axis (only effective in multi-line layouts).
+
+    CrossAxisLineAlignMiddle = AxisAlignMiddle
+    CrossAxisLineAlignStart = AxisAlignStart
+    CrossAxisLineAlignEnd = AxisAlignEnd
+    CrossAxisLineAlignStretch = AxisAlignStretch
+    CrossAxisLineAlignSpaceBetween = 0x08
+    CrossAxisLineAlignSpaceAround = 0x10
+    CrossAxisLineAlignSpaceEvenly = 0x18
 
   Layout* = enum
+    ## Layout mode (controls child node arrangement direction).
+
     LayoutFree = 0x00
     LayoutRow = 0x01
     LayoutColumn = 0x02
 
   Wrap* = enum
+    ## Child node wrapping behavior (only effective in Flex layout).
+
     WrapNoWrap = 0x00
     WrapWrap = 0x01
 
-  Node* = object  ## Layout node type
+  Node* = object
+    ## Layout node (conceptually a 2D rectangle with layout properties and hierarchy).
+
     id*: NodeID
 
-    isBreak: bool ## Whether an node's children have already been wrapped.
+    isBreak: bool            ## Whether an node's children have already been wrapped.
     isDelay: bool
-      ## Whether to delay the calculation.
-      ## When line wrapping is enabled, the main axis affects the order of x/y calculation.
+      ## Whether to delay axis calculation (for wrapped layouts).
+      ## When wrapping is enabled, main axis calculation depends on cross axis results (e.g., vertical layout needs y-axis first to calculate x-axis wrapping).
 
     wrap*: Wrap
     layout*: Layout
     mainAxisAlign*: MainAxisAlign
     crossAxisAlign*: CrossAxisAlign
-    axisAlign*: AxisAlign
+    crossAxisLineAlign*: CrossAxisLineAlign
     align*: set[Align]
 
     firstChild*: NodeID
@@ -76,17 +97,20 @@ type
     prevSibling*: NodeID
     nextSibling*: NodeID
 
-    margin*: array[4, float32]
-    size*: array[2, float32]
+    margin*: array[4, float32] ## Node margin (order: left -> top -> right -> bottom).
+    size*: array[2, float32] ## Explicit node size (order: width -> height).
 
     computed*: array[4, float32]
-      ## The calculated rectangle of an node.
-      ## The components of the vector are:
-      ## 0: x starting position, 1: y starting position, 2: width, 3: height.
+      ## Computed absolute rectangle.
+      ## Array components (order: x -> y -> width -> height):
+      ## - Index 0: Absolute X position (relative to root node, top-left corner).
+      ## - Index 1: Absolute Y position (relative to root node, top-left corner).
+      ## - Index 2: Computed width.
+      ## - Index 3: Computed height.
 
   Context* = object
     nodes*: seq[Node]
-    caches: seq[NodeCache] ## Cache the results of breadth-first traversals
+    caches: seq[NodeCache] ## Cache for breadth-first traversal results (speeds up child node indexing).
 
 proc `$`*(id: NodeID): string =
   if id != NIL:
@@ -169,8 +193,9 @@ template isSameAxis(layout: Layout, dim: int32): bool =
 
 template toAxisAlign(align: set[Align], dim: int32): AxisAlign =
   var bits = uint32(0)
-  for a in align:
-    bits = bits or uint32(a)
+  for a in [AlignLeft, AlignTop, AlignRight, AlignBottom]:
+    if a in align:
+      bits = bits or uint32(a)
 
   cast[AxisAlign]((bits shr dim) and ord(AxisAlignStretch))
 
@@ -199,7 +224,7 @@ proc calcSize(l: ptr Context, dim: int32) =
     let c = l.caches[idx].addr
     let n = c.node
 
-    # Set the mutable rect output data to the starting input data
+    # Set the mutable rect output data to the starting input data.
     n.computed[dim] = n.margin[dim]
 
     # If we have an explicit input size, just set our output size (which other
@@ -259,7 +284,7 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
 
     var expandRangeEnd = arrangeRangeEnd
 
-    # first pass: count items that need to be expanded, and the space that is used
+    # first pass: count nodes that need to be expanded, and the space that is used.
     for idx in arrangeRangeBegin ..< arrangeRangeEnd:
       let child = l.caches[idx].node
 
@@ -322,7 +347,7 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
           of MainAxisAlignMiddle:
             extraMargin = extraSpace / 2
 
-        # distribute width among items
+        # distribute width among nodes
     var x = computed[dim]
     var x1 = 0f
 
@@ -376,8 +401,6 @@ proc arrangeOverlay(l: ptr Context, c: ptr NodeCache, dim: int32) =
         child.computed[dim] +
         max(0f, (space - child.computed[wDim] - child.margin[dim] -
             child.margin[wDim]) / 2)
-    of AxisAlignSpaceBetween, AxisAlignSpaceAround, AxisAlignSpaceEvenly:
-      discard
 
     child.computed[dim] = child.computed[dim] + offset
 
@@ -408,8 +431,6 @@ proc arrangeOverlaySqueezedRange(l: ptr Context, dim: int32,
         child.computed[dim] +
         max(0f, (space - child.computed[wDim] - child.margin[dim] -
             child.margin[wDim]) / 2)
-    of AxisAlignSpaceBetween, AxisAlignSpaceAround, AxisAlignSpaceEvenly:
-      discard
 
     child.computed[dim] = child.computed[dim] + offset
 
@@ -434,7 +455,7 @@ proc arrangeWrappedOverlaySqueezed(l: ptr Context, c: ptr NodeCache,
   var spacer = 0f
   var filler = 0f
 
-  if n.axisAlign != AxisAlignStart:
+  if n.crossAxisLineAlign != CrossAxisLineAlignStart:
     var used = 0f
 
     for idx in c.childOffset ..< c.childOffset + c.childCount:
@@ -451,25 +472,28 @@ proc arrangeWrappedOverlaySqueezed(l: ptr Context, c: ptr NodeCache,
     extraSpace = space - used
     needSize = 0
 
-  case n.axisAlign
-  of AxisAlignMiddle:
+  case n.crossAxisLineAlign
+  of CrossAxisLineAlignMiddle:
     extraMargin = extraSpace / 2
-  of AxisAlignStart:
+  of CrossAxisLineAlignStart:
     discard
-  of AxisAlignEnd:
+  of CrossAxisLineAlignEnd:
     extraMargin = extraSpace
-  of AxisAlignStretch:
-    spacer = extraSpace / float32(lineCount)
-    filler = spacer
-  of AxisAlignSpaceBetween:
-    if lineCount > 1:
+  of CrossAxisLineAlignStretch:
+    if extraSpace > 0:
+      spacer = extraSpace / float32(lineCount)
+      filler = spacer
+  of CrossAxisLineAlignSpaceBetween:
+    if extraSpace > 0 and lineCount > 1:
       spacer = extraSpace / float32(lineCount - 1)
-  of AxisAlignSpaceAround:
-    spacer = extraSpace / float32(lineCount)
-    extraMargin = spacer / 2
-  of AxisAlignSpaceEvenly:
-    spacer = extraSpace / float32(lineCount + 1)
-    extraMargin = spacer
+  of CrossAxisLineAlignSpaceAround:
+    if extraSpace > 0:
+      spacer = extraSpace / float32(lineCount)
+      extraMargin = spacer / 2
+  of CrossAxisLineAlignSpaceEvenly:
+    if extraSpace > 0:
+      spacer = extraSpace / float32(lineCount + 1)
+      extraMargin = spacer
 
   for idx in c.childOffset ..< c.childOffset + c.childCount:
     let child = l.caches[idx].node
@@ -552,20 +576,23 @@ proc arrange(l: ptr Context, dim: int32) =
         l.arrange(c, 0)
 
 proc compute*(l: ptr Context, n: ptr Node) =
+  ## Core layout calculation entry: Computes size and absolute position (computed field) for the target node and its subtree.
+  ## Process: Breadth-first traversal -> cache nodes -> calculate base size (calcSize) -> arrange positions + stretch (arrange) -> clear cache.
+
   n.isDelay = false
 
   l.caches.add(NodeCache(node: n))
 
   var idx = 0
 
-  # Cache the results of the breadth-first traversal.
-  # For subsequent calculations, you can directly access the child nodes using subscripts.
+  # Step 1: Breadth-first traversal of the subtree, cache all nodes.
+  # Purpose: 1. Ensure child nodes are calculated before parent nodes (reverse order later); 2. Allow direct subscript access to children via cache (childOffset/childCount).
   while idx < l.caches.len:
     let n = l.caches[idx].node
     let childOffset = uint32(l.caches.len)
 
+    # Enable delay calculation if wrapping is enabled (needs to compute one axis first for line wrapping).
     if n.wrap == WrapWrap:
-      # delayed calculations are required
       n.isDelay = true
 
     n.isBreak = false
@@ -573,12 +600,14 @@ proc compute*(l: ptr Context, n: ptr Node) =
     var count = 0
     let isDelay = n.isDelay
 
+    # Traverse all direct children of current node, add to cache.
     for child in l.children(n):
       inc count, 1
 
       child.isDelay = isDelay
       l.caches.add(NodeCache(node: child))
 
+    # Update current node's cache info: Child nodes' position and count in cache.
     let c = l.caches[idx].addr
     c.childOffset = childOffset
     c.childCount = uint32(count)
@@ -586,11 +615,15 @@ proc compute*(l: ptr Context, n: ptr Node) =
     inc idx, 1
 
   template computeDim(dim) =
+    # Step 2: Calculate base required size (no expansion) -> fills computed[2/3] (width/height).
     l.calcSize(dim)
+    # Step 3: Arrange positions + handle space filling/stretching -> updates computed[0/1] (x/y) and adjusts size if needed.
     l.arrange(dim)
 
-  # The x-axis index is 0, and the y-axis index is 1
+  # Calculate x-axis (dim=0) first, then y-axis (dim=1).
+  # Order depends on layout mode: Wrapped layouts use `isDelay` to ensure correct dependency order.
   computeDim(0)
   computeDim(1)
 
+  # Step 4: Clear traversal cache (cache is only used during compute).
   l.caches.setLen(0)

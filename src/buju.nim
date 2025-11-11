@@ -3,7 +3,7 @@ import std/typetraits
 import ./buju/core
 
 export Context, NodeID, isNil, `$`
-export Align, MainAxisAlign, CrossAxisAlign, AxisAlign, Layout, Wrap
+export Align, MainAxisAlign, CrossAxisAlign, CrossAxisLineAlign, Layout, Wrap
 
 template getAddr(body): auto =
   when NimMajor > 1: body.addr else: body.unsafeAddr
@@ -18,11 +18,12 @@ proc clear*(l: var Context) {.inline, raises: [].} =
   ## you want to re-declare your layout starting from the root node. This does not
   ## free any memory or perform allocations. It's safe to use the `Context` again
   ## after calling this.
+  ## Note: Previously used `NodeID` values become invalid; recreate nodes if needed.
 
   l.nodes.setLen(0)
 
 proc firstChild*(l: Context, nodeID: NodeID): NodeID {.inline, raises: [].} =
-  ## Get the id of first child of an node, if any. Returns `NodeID.NIL` if there
+  ## Get the id of first child of a node, if any. Returns `NodeID.NIL` if there
   ## is no child.
 
   let
@@ -33,7 +34,7 @@ proc firstChild*(l: Context, nodeID: NodeID): NodeID {.inline, raises: [].} =
     return n.firstChild
 
 proc lastChild*(l: Context, nodeID: NodeID): NodeID {.inline, raises: [].} =
-  ## Get the id of last child of an node, if any. Returns `NodeID.NIL` if there
+  ## Get the id of last child of a node, if any. Returns `NodeID.NIL` if there
   ## is no child.
 
   let
@@ -44,7 +45,7 @@ proc lastChild*(l: Context, nodeID: NodeID): NodeID {.inline, raises: [].} =
     return n.lastChild
 
 proc nextSibling*(l: Context, nodeID: NodeID): NodeID {.inline, raises: [].} =
-  ## Get the id of the next sibling of an node, if any. Returns `NodeID.NIL` if
+  ## Get the id of the next sibling of a node, if any. Returns `NodeID.NIL` if
   ## there is no next sibling.
 
   let
@@ -55,7 +56,7 @@ proc nextSibling*(l: Context, nodeID: NodeID): NodeID {.inline, raises: [].} =
     return n.nextSibling
 
 iterator children*(l: Context, nodeID: NodeID): NodeID {.inline, raises: [].} =
-  ## Iterates over all direct children of an node.
+  ## Iterates over all direct children of a node.
 
   let
     l = l.getAddr
@@ -84,10 +85,10 @@ proc node*(l: var Context): NodeID {.inline, raises: [].} =
 
 proc setLayout*(l: var Context, nodeID: NodeID, layout: Layout) {.inline,
     raises: [].} =
-  ## Set layout mode.
-  ## `LayoutRow`: flex layout, main axis is horizontal.
-  ## `LayoutColumn`: flex layout, main axis is vertical.
-  ## `LayoutFree`: free layout.
+  ## Sets the layout mode of a node.
+  ## - `LayoutRow`: Flex layout with horizontal main axis.
+  ## - `LayoutColumn`: Flex layout with vertical main axis.
+  ## - `LayoutFree`: Free layout (no fixed arrangement rules).
 
   let
     l = l.getAddr
@@ -98,9 +99,10 @@ proc setLayout*(l: var Context, nodeID: NodeID, layout: Layout) {.inline,
 
 proc setAlign*(l: var Context, nodeID: NodeID, align: set[Align]) {.inline,
     raises: [].} =
-  ## Set the node's own alignment direction.
-  ## For example, `AlignTop` behaves as top alignment in all layout modes.
-  ## setting both `AlignTop` and `AlignBottom` results in vertical stretching.
+  ## Sets the node's own absolute directional alignment (axis-agnostic).
+  ## Enumeration values are combinable via set syntax:
+  ## - `{AlignTop}`: Top alignment in all layout modes.
+  ## - `{AlignTop, AlignBottom}`: Vertical stretching (fills parent's vertical space).
 
   let
     l = l.getAddr
@@ -111,10 +113,12 @@ proc setAlign*(l: var Context, nodeID: NodeID, align: set[Align]) {.inline,
 
 proc setMainAxisAlign*(l: var Context, nodeID: NodeID,
     mainAxisAlign: MainAxisAlign) {.inline, raises: [].} =
-  ## Set alignment of all child nodes of the node along the main axis.
-  ## For example, `AxisAlignStart` behaves as child nodes' left alignment when the main axis is `LayoutRow`,
-  ## and as child nodes' top alignment when the main axis is `LayoutColumn`.
-  ## Not take effect in `LayoutFree` mode.
+  ## Sets the alignment of all child nodes along the node's main axis.
+  ## Corresponding behavior to Flex layout's `justify-content`.
+  ## Behavior depends on the node's layout mode:
+  ## - `LayoutRow` (horizontal main axis): Controls horizontal alignment of children.
+  ## - `LayoutColumn` (vertical main axis): Controls vertical alignment of children.
+  ## - `LayoutFree`: Not effective.
 
   let
     l = l.getAddr
@@ -125,11 +129,12 @@ proc setMainAxisAlign*(l: var Context, nodeID: NodeID,
 
 proc setCrossAxisAlign*(l: var Context, nodeID: NodeID,
     crossAxisAlign: CrossAxisAlign) {.inline, raises: [].} =
-  ## Set alignment of all child nodes of the node along the cross axis.
-  ## For example, `CrossAxisAlignStart` behaves as child nodes' top alignment when the main axis is `LayoutRow`,
-  ## and as child nodes' left alignment when the main axis is `LayoutColumn`.
-  ## When a child node has already set its own alignment, the parent node's crossAxisAlign setting will not take effect
-  ## Not take effect in `LayoutFree` mode.
+  ## Sets the alignment of all child nodes along the node's cross axis.
+  ## Corresponding behavior to Flex layout's `align-items`.
+  ## Behavior depends on the node's layout mode:
+  ## - `LayoutRow` (vertical cross axis): Controls vertical alignment of children.
+  ## - `LayoutColumn` (horizontal cross axis): Controls horizontal alignment of children.
+  ## - `LayoutFree`: Not effective.
 
   let
     l = l.getAddr
@@ -138,20 +143,26 @@ proc setCrossAxisAlign*(l: var Context, nodeID: NodeID,
   if not n.isNil:
     n.crossAxisAlign = crossAxisAlign
 
-proc setAxisAlign*(l: var Context, nodeID: NodeID,
-    axisAlign: AxisAlign) {.inline, raises: [].} =
-  ## Set the alignment between multiple main axes.
-  ## When wrapping occurs, each line serves as a separate main axis.
+proc setCrossAxisLineAlign*(l: var Context, nodeID: NodeID,
+    crossAxisLineAlign: CrossAxisLineAlign) {.inline, raises: [].} =
+  ## Sets the alignment and spacing of multiple flex lines along the cross axis.
+  ## Corresponding behavior to Flex layout's `align-content`.
+  ## Notes:
+  ## - Only effective if `layout` is `LayoutRow`/`LayoutColumn` and `wrap` is `WrapWrap` (multi-line scenario).
+  ## - Not effective in `LayoutFree` mode or single-line layouts.
 
   let
     l = l.getAddr
     n = l.node(nodeID)
 
   if not n.isNil:
-    n.axisAlign = axisAlign
+    n.crossAxisLineAlign = crossAxisLineAlign
 
 proc setWrap*(l: var Context, nodeID: NodeID, wrap: Wrap) {.inline, raises: [].} =
-  ## Set whether the node allows child nodes to wrap.
+  ## Sets whether child nodes wrap when exceeding the node's main axis bounds.
+  ## Options:
+  ## - `WrapNoWrap`: No wrapping (children overflow if bounds are exceeded).
+  ## - `WrapWrap`: Auto-wrapping (children split into multiple lines/columns).
 
   let
     l = l.getAddr
@@ -162,9 +173,10 @@ proc setWrap*(l: var Context, nodeID: NodeID, wrap: Wrap) {.inline, raises: [].}
 
 proc setSize*(l: var Context, nodeID: NodeID, size: array[2, float32]) {.inline,
     raises: [].} =
-  ## Sets the size of an node.
-  ## The components of the vector are:
-  ## 0: width, 1: height.
+  ## Sets the size of a node.
+  ## Array components (order: width -> height):
+  ## - Index 0: Width of the node.
+  ## - Index 1: Height of the node.
 
   let
     l = l.getAddr
@@ -175,9 +187,12 @@ proc setSize*(l: var Context, nodeID: NodeID, size: array[2, float32]) {.inline,
 
 proc setMargin*(l: var Context, nodeID: NodeID, margin: array[4,
     float32]) {.inline, raises: [].} =
-  ## Set the margins on an node.
-  ## The components of the vector are:
-  ## 0: left, 1: top, 2: right, 3: bottom.
+  ## Sets the margin of a node (space around the node).
+  ## Array components (order: left -> top -> right -> bottom):
+  ## - Index 0: Left margin.
+  ## - Index 1: Top margin.
+  ## - Index 2: Right margin.
+  ## - Index 3: Bottom margin.
 
   let
     l = l.getAddr
@@ -187,9 +202,10 @@ proc setMargin*(l: var Context, nodeID: NodeID, margin: array[4,
     n.margin = margin
 
 proc insertChild*(l: var Context, parentID, childID: NodeID) {.inline, raises: [].} =
-  ## Inserts an node into another node, forming a parent - child relationship. 
-  ## An node can contain any number of child nodes. Items inserted into a parent are
+  ## Inserts a node into another node, forming a parent-child relationship. 
+  ## A node can contain any number of child nodes. Items inserted into a parent are
   ## put at the end of the ordering, after any existing siblings.
+  ## Note: If the child node already has a parent, call `removeChild` first to avoid conflicts.
 
   let
     l = l.getAddr
@@ -207,7 +223,8 @@ proc insertChild*(l: var Context, parentID, childID: NodeID) {.inline, raises: [
     p.lastChild = childID
 
 proc removeChild*(l: var Context, parentID, childID: NodeID) {.inline, raises: [].} =
-  ## Removing an node from another, will untie the parent-child relationship between them.
+  ## Removes a child node from its parent, breaking the parent-child relationship.
+  ## Note: Resets the child's `prevSibling` and `nextSibling` to `NodeID.NIL`.
 
   let
     l = l.getAddr
@@ -238,13 +255,13 @@ proc removeChild*(l: var Context, parentID, childID: NodeID) {.inline, raises: [
 
 proc compute*(l: var Context, nodeID: NodeID) {.inline, raises: [].} =
   ## Running the layout calculations from a specific node is useful if you want
-  ## need to iteratively re-run parts of your layout hierarchy, or if you are only
+  ## to iteratively re-run parts of your layout hierarchy, or if you are only
   ## interested in updating certain subsets of it. Be careful when using this,
-  ## it's easy to generated bad output if the parent nodes haven't yet had their
-  ## output rectangles calculated, or if they've been invalidated (e.g. due to
+  ## it's easy to generate bad output if the parent nodes haven't yet had their
+  ## output rectangles calculated, or if they've been invalidated (e.g., due to
   ## re-allocation).
   ##
-  ## After calling this, you can use `computed` to query for an node's calculated
+  ## After calling this, you can use `computed` to query for a node's calculated
   ## rectangle. If you use procedures such as `insertChild` or `removeChild` after
   ## calling this, your calculated data may become invalid if a reallocation
   ## occurs.
@@ -252,7 +269,7 @@ proc compute*(l: var Context, nodeID: NodeID) {.inline, raises: [].} =
   ## You should prefer to recreate your nodes starting from the root instead of
   ## doing fine-grained updates to the existing `Context`.
   ##
-  ## However, it's safe to use `setSize` on an node, and then re-run
+  ## However, it's safe to use `setSize` on a node, and then re-run
   ## `compute`. This might be useful if you are doing a resizing animation
   ## on nodes in a layout without any contents changing.
 
@@ -265,11 +282,12 @@ proc compute*(l: var Context, nodeID: NodeID) {.inline, raises: [].} =
 
 proc computed*(l: Context, nodeID: NodeID): array[4, float32] {.inline,
     raises: [].} =
-  ## Returns the calculated rectangle of an node. This is only valid after calling
-  ## `compute` and before any other reallocation occurs. Otherwise, the
-  ## result will be undefined.
-  ## The components of the vector are:
-  ## 0: x starting position, 1: y starting position, 2: width, 3: height.
+  ## Returns the computed layout rectangle of a node (valid only after `compute`).
+  ## Array components (order: x -> y -> width -> height):
+  ## - Index 0: Absolute X starting position (relative to the root node).
+  ## - Index 1: Absolute Y starting position (relative to the root node).
+  ## - Index 2: Computed width.
+  ## - Index 3: Computed height.
 
   let
     l = l.getAddr

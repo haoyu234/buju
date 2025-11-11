@@ -13,7 +13,7 @@ type
     layout: Layout
     mainAxisAlign: MainAxisAlign
     crossAxisAlign: CrossAxisAlign
-    axisAlign: AxisAlign
+    crossAxisLineAlign: CrossAxisLineAlign
     align: set[Align]
     size: array[2, float32]
     margin: array[4, float32]
@@ -23,9 +23,11 @@ type
     parentID: int32
     attr: NodeAttr
 
-proc `%`(s: set[Align]): JsonNode =
+proc `%`(align: set[Align]): JsonNode =
   result = newJArray()
-  for v in s: result.add(%v)
+  for a in [AlignLeft, AlignTop, AlignRight, AlignBottom]:
+    if a in align:
+      result.add(%a)
 
 proc initFromJson(dst: var set[Align], jsonNode: JsonNode,
     jsonPath: var string) =
@@ -44,7 +46,7 @@ proc dump(l: ptr Context, id, parentID: NodeID, nodes: var seq[NodeItem]) =
         wrap: n.wrap,
         mainAxisAlign: n.mainAxisAlign,
         crossAxisAlign: n.crossAxisAlign,
-        axisAlign: n.axisAlign,
+        crossAxisLineAlign: n.crossAxisLineAlign,
         align: n.align,
         size: n.size,
         margin: n.margin,
@@ -79,7 +81,7 @@ proc loadJson*(l: var Context, json: string): NodeID =
     l.setLayout(n, attr.layout)
     l.setMainAxisAlign(n, attr.mainAxisAlign)
     l.setCrossAxisAlign(n, attr.crossAxisAlign)
-    l.setAxisAlign(n, attr.axisAlign)
+    l.setCrossAxisLineAlign(n, attr.crossAxisLineAlign)
     l.setWrap(n, attr.wrap)
     l.setAlign(n, attr.align)
     l.setSize(n, attr.size)
