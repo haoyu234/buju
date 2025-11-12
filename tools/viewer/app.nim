@@ -32,7 +32,9 @@ var
   focusId = default(NodeID)
   mapping = initTable[NodeID, NodeID]()
   scale = 1
-  defaultAttr = NodeAttr(size: [50, 50]#[ , margin: [5, 5, 5, 5] ]#)
+  defaultAttr = NodeAttr(
+    size: [50, 50] #[ , margin: [5, 5, 5, 5] ]#
+  )
 
 proc download(data: cstring, mime: cstring, name: cstring) =
   when defined(js):
