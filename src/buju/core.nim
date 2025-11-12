@@ -97,8 +97,9 @@ type
     prevSibling*: NodeID
     nextSibling*: NodeID
 
-    margin*: array[4, float32] ## Node margin (order: left -> top -> right -> bottom).
     size*: array[2, float32] ## Explicit node size (order: width -> height).
+    gap*: array[2, float32] ## Node grid gap (order: column gap -> row gap).
+    margin*: array[4, float32] ## Node margin (order: left -> top -> right -> bottom).
 
     computed*: array[4, float32]
       ## Computed absolute rectangle.
@@ -267,6 +268,7 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
 
   let computed = n.computed
   let space = computed[wDim]
+  let gap = n.gap[dim]
 
   var arrangeRangeBegin = c.childOffset
   let arrangeRangeEnd = c.childOffset + c.childCount
@@ -289,8 +291,11 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
       let child = l.caches[idx].node
 
       inc nodeCount, 1
-      let extend = used + child.computed[dim] + child.margin[wDim] +
+      var extend = used + child.computed[dim] + child.margin[wDim] +
           child.computed[wDim]
+
+      if idx != arrangeRangeBegin:
+        extend = extend + gap
 
       if toAxisAlign(child.align, dim) == AxisAlignStretch:
         inc count
@@ -355,7 +360,10 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
     for idx in arrangeRangeBegin ..< expandRangeEnd:
       let child = l.caches[idx].node
 
-      x += child.computed[dim] + extraMargin
+      x = x + child.computed[dim] + extraMargin
+      if idx != arrangeRangeBegin:
+        x = x + gap
+
       if toAxisAlign(child.align, dim) == AxisAlignStretch:
         # grow
         x1 = x + child.computed[wDim] + filler
@@ -442,6 +450,7 @@ proc arrangeWrappedOverlaySqueezed(l: ptr Context, c: ptr NodeCache,
 
   let n = c.node
   let space = n.computed[wDim]
+  let gap = n.gap[dim]
   let inheritedAxisAlign = toAxisAlign(n.layout, n.crossAxisAlign, dim)
 
   var offset = n.computed[dim]
@@ -455,7 +464,7 @@ proc arrangeWrappedOverlaySqueezed(l: ptr Context, c: ptr NodeCache,
   var spacer = 0f
   var filler = 0f
 
-  if n.crossAxisLineAlign != CrossAxisLineAlignStart:
+  block:
     var used = 0f
 
     for idx in c.childOffset ..< c.childOffset + c.childCount:
@@ -467,8 +476,12 @@ proc arrangeWrappedOverlaySqueezed(l: ptr Context, c: ptr NodeCache,
 
       let childSize = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
       needSize = max(needSize, childSize)
-
     used = used + needSize
+
+    if lineCount > 1:
+      spacer = gap
+      used = used + float32(lineCount - 1) * gap
+
     extraSpace = space - used
     needSize = 0
 
@@ -481,19 +494,23 @@ proc arrangeWrappedOverlaySqueezed(l: ptr Context, c: ptr NodeCache,
     extraMargin = extraSpace
   of CrossAxisLineAlignStretch:
     if extraSpace > 0:
-      spacer = extraSpace / float32(lineCount)
-      filler = spacer
+      let space = extraSpace / float32(lineCount)
+      spacer = spacer + space
+      filler = space
   of CrossAxisLineAlignSpaceBetween:
     if extraSpace > 0 and lineCount > 1:
-      spacer = extraSpace / float32(lineCount - 1)
+      let space = extraSpace / float32(lineCount - 1)
+      spacer = spacer + space
   of CrossAxisLineAlignSpaceAround:
     if extraSpace > 0:
-      spacer = extraSpace / float32(lineCount)
-      extraMargin = spacer / 2
+      let space = extraSpace / float32(lineCount)
+      spacer = spacer + space
+      extraMargin = space / 2
   of CrossAxisLineAlignSpaceEvenly:
     if extraSpace > 0:
-      spacer = extraSpace / float32(lineCount + 1)
-      extraMargin = spacer
+      let space = extraSpace / float32(lineCount + 1)
+      spacer = spacer + space
+      extraMargin = space
 
   for idx in c.childOffset ..< c.childOffset + c.childCount:
     let child = l.caches[idx].node

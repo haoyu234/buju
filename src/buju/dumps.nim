@@ -16,6 +16,7 @@ type
     crossAxisLineAlign: CrossAxisLineAlign
     align: set[Align]
     size: array[2, float32]
+    gap: array[2, float32]
     margin: array[4, float32]
 
   NodeItem = object
@@ -49,6 +50,7 @@ proc dump(l: ptr Context, id, parentID: NodeID, nodes: var seq[NodeItem]) =
         crossAxisLineAlign: n.crossAxisLineAlign,
         align: n.align,
         size: n.size,
+        gap: n.gap,
         margin: n.margin,
       )
     ))
@@ -85,6 +87,7 @@ proc loadJson*(l: var Context, json: string): NodeID =
     l.setWrap(n, attr.wrap)
     l.setAlign(n, attr.align)
     l.setSize(n, attr.size)
+    l.setGap(n, attr.gap)
     l.setMargin(n, attr.margin)
 
     if len(mapping) <= 0:

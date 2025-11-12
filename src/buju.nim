@@ -185,6 +185,20 @@ proc setSize*(l: var Context, nodeID: NodeID, size: array[2, float32]) {.inline,
   if not n.isNil:
     n.size = size
 
+proc setGap*(l: var Context, nodeID: NodeID, gap: array[2, float32]) {.inline,
+    raises: [].} =
+  ## Sets the spacing between child nodes (gap).
+  ## Array components (order: column gap -> row gap):
+  ## - Index 0: Column gap (horizontal spacing between adjacent child nodes).
+  ## - Index 1: Row gap (vertical spacing between adjacent child nodes).
+
+  let
+    l = l.getAddr
+    n = l.node(nodeID)
+
+  if not n.isNil:
+    n.gap = gap
+
 proc setMargin*(l: var Context, nodeID: NodeID, margin: array[4,
     float32]) {.inline, raises: [].} =
   ## Sets the margin of a node (space around the node).
@@ -284,8 +298,8 @@ proc computed*(l: Context, nodeID: NodeID): array[4, float32] {.inline,
     raises: [].} =
   ## Returns the computed layout rectangle of a node (valid only after `compute`).
   ## Array components (order: x -> y -> width -> height):
-  ## - Index 0: Absolute X starting position (relative to the root node).
-  ## - Index 1: Absolute Y starting position (relative to the root node).
+  ## - Index 0: Absolute X starting position (relative to the root node's top-left corner).
+  ## - Index 1: Absolute Y starting position (relative to the root node's top-left corner).
   ## - Index 2: Computed width.
   ## - Index 3: Computed height.
 

@@ -18,6 +18,7 @@ type
     crossAxisLineAlign: CrossAxisLineAlign
     align: set[Align]
     size: array[2, float32]
+    gap: array[2, float32]
     margin: array[4, float32]
 
   Mode = enum
@@ -31,7 +32,7 @@ var
   focusId = default(NodeID)
   mapping = initTable[NodeID, NodeID]()
   scale = 1
-  defaultAttr = NodeAttr(size: [50, 50], margin: [5, 5, 5, 5])
+  defaultAttr = NodeAttr(size: [50, 50]#[ , margin: [5, 5, 5, 5] ]#)
 
 proc download(data: cstring, mime: cstring, name: cstring) =
   when defined(js):
@@ -108,6 +109,7 @@ proc getAttr(id: NodeID): NodeAttr =
   result.crossAxisLineAlign = n.crossAxisLineAlign
   result.align = n.align
   result.size = n.size
+  result.gap = n.gap
   result.margin = n.margin
 
 proc insertChild(parentID, childID: NodeID) =
@@ -236,6 +238,14 @@ proc viewerH5(): VNode =
     if attr.size[1] > 0:
       result.setAttr(StyleAttr.height, toPixelSize(attr.size[1]))
 
+    if attr.gap[0] > 0:
+      # The row-gap CSS property sets the size of the gap (gutter) between an element's columns.
+      result.setAttr(StyleAttr.columnGap, toPixelSize(attr.gap[0]))
+
+    if attr.gap[1] > 0:
+      # The row-gap CSS property sets the size of the gap (gutter) between an element's rows.
+      result.setAttr(StyleAttr.rowGap, toPixelSize(attr.gap[1]))
+
     case attr.layout
     of LayoutRow:
       result.setAttr(StyleAttr.display, "flex")
@@ -294,8 +304,10 @@ proc viewerH5(): VNode =
 
     proc toCssAlign(a: Align): kstring =
       case a
-      of AlignLeft, AlignTop: kstring("flex-start")
-      of AlignRight, AlignBottom: kstring("flex-end")
+      of AlignLeft, AlignTop:
+        kstring("flex-start")
+      of AlignRight, AlignBottom:
+        kstring("flex-end")
 
     const
       V = {AlignTop, AlignBottom}
@@ -387,8 +399,7 @@ proc radioGroup[T](
 
         li:
           label:
-            input(`type` = "radio", name = name, checked = v == val,
-                onClick = onClick)
+            input(`type` = "radio", name = name, checked = v == val, onClick = onClick)
             text trim($v, T)
 
 proc checkboxGroup[T](
@@ -404,8 +415,7 @@ proc checkboxGroup[T](
         li:
           label:
             input(
-              `type` = "checkbox", name = name, checked = v in val,
-              onClick = onClick
+              `type` = "checkbox", name = name, checked = v in val, onClick = onClick
             )
             text trim($v, T)
 
@@ -419,10 +429,10 @@ proc setLayout(attr: NodeAttr): VNode =
         "Layout",
         attr.layout,
         collect do:
-        for layout in Layout:
-          layout,
+          for layout in Layout:
+            layout,
         proc(layout: Layout) =
-        l.setLayout(focusId, layout),
+          l.setLayout(focusId, layout),
       )
 
       label:
@@ -466,8 +476,7 @@ proc setMainAxisAlign(attr: NodeAttr): VNode =
         attr.mainAxisAlign,
         [
           MainAxisAlignMiddle, MainAxisAlignStart, MainAxisAlignEnd,
-          MainAxisAlignSpaceBetween, MainAxisAlignSpaceAround,
-          MainAxisAlignSpaceEvenly,
+          MainAxisAlignSpaceBetween, MainAxisAlignSpaceAround, MainAxisAlignSpaceEvenly,
         ],
         proc(mainAxisAlign: MainAxisAlign) =
           l.setMainAxisAlign(focusId, mainAxisAlign),
@@ -516,6 +525,7 @@ proc setSizeMargin(attr: NodeAttr): VNode =
 
       const
         sizeProps = ["Width", "Height"]
+        gapProps = ["ColumnGap", "RowGap"]
         marginProps = ["MarginLeft", "MarginTop", "MarginRight", "MarginBottom"]
 
       for idx in 0 ..< len(sizeProps):
@@ -526,6 +536,15 @@ proc setSizeMargin(attr: NodeAttr): VNode =
             l.setSize(focusId, size)
 
         numberEntry(sizeProps[idx], attr.size[idx], onChanged = onChanged)
+
+      for idx in 0 ..< len(gapProps):
+        let onChanged = capture idx:
+          proc(v: float32) =
+            var gap = attr.gap
+            gap[idx] = v
+            l.setGap(focusId, gap)
+
+        numberEntry(gapProps[idx], attr.gap[idx], onChanged = onChanged)
 
       for idx in 0 ..< len(marginProps):
         let onChanged = capture idx:
@@ -556,8 +575,7 @@ proc createDom(): VNode =
   result = buildHtml(tdiv):
     section(class = "app"):
       section(
-        class = "editor", style = style([(StyleAttr.display, kstring(
-            "inline-block"))])
+        class = "editor", style = style([(StyleAttr.display, kstring("inline-block"))])
       ):
         section(class = "tools"):
           button(class = "tool", onclick = importJson):

@@ -5,7 +5,7 @@ It has fixed several bugs left over from the original implementation and optimiz
 
 # Features
 1. [Layout Visualization Tool](https://htmlpreview.github.io/?https://github.com/haoyu234/buju/blob/crossaxis/assets/viewer.html) - Used to debug exported layout JSON files.
-2. Added main axis and cross axis support compared to the original version.
+2. Added main/cross axis alignment and gap support compared to the original version.
 
 # Example
 ```nim
