@@ -5,22 +5,27 @@ import ./utils
 
 test2 "issue_1":
   let root = l.node()
-  l.setSize(root, vec2(200, 200))
-  l.setMargin(root, vec4(50, 50, 50, 50))
-  l.setBoxFlags(root, LayoutBoxWrap or LayoutBoxColumn)
+
+  # In the previous implementation, `WrapWrap` caused the node's width to shrink,
+  # the new implementation no longer shrinks in all cases.
+  # Set width to 0 and let the child nodes expand it.
+  l.setSize(root, [float32(0), 200])
+  l.setMargin(root, [float32(50), 50, 50, 50])
+  l.setLayout(root, LayoutColumn)
+  l.setWrap(root, WrapWrap)
 
   let node2 = l.node()
-  l.setSize(node2, vec2(50, 50))
-  l.setMargin(node2, vec4(5, 5, 5, 5))
+  l.setSize(node2, [float32(50), 50])
+  l.setMargin(node2, [float32(5), 5, 5, 5])
   l.insertChild(root, node2)
 
   let node3 = l.node()
-  l.setSize(node3, vec2(50, 50))
-  l.setMargin(node3, vec4(5, 5, 5, 5))
+  l.setSize(node3, [float32(50), 50])
+  l.setMargin(node3, [float32(5), 5, 5, 5])
   l.insertChild(node2, node3)
 
   l.compute(root)
 
-  check l.computed(root) == vec4(50, 50, 60, 200)
-  check l.computed(node2) == vec4(55, 125, 50, 50)
-  check l.computed(node3) == vec4(60, 130, 50, 50)
+  check l.computed(root) == [float32(50), 50, 60, 200]
+  check l.computed(node2) == [float32(55), 125, 50, 50]
+  check l.computed(node3) == [float32(60), 130, 50, 50]

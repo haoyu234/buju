@@ -1,137 +1,139 @@
-import vmath
 import std/strformat
 
 type
-  LayoutNodeID* {.size: 4.} = enum ## Node id, avoid using pointers and references
+  NodeID* {.size: 4.} = enum
+    ## Node identifier (avoids using pointers/references for safety and simplicity).
+
     NIL
 
-  LayoutCacheObj = object
-    node: ptr LayoutNodeObj
-    childOffset: uint32
-    childCount: uint32
+  NodeCache = object
+    ## Cache for breadth-first traversal results (optimizes child node access).
 
-  LayoutNodeObj* = object ## Layout node type
-    id*: LayoutNodeID
+    node: ptr Node
+    childOffset: uint32 ## Starting index of the node's children in the cache.
+    childCount: uint32  ## Count of direct children of the cached node.
 
-    isBreak: bool ## whether an node's children have already been wrapped.
-    isSkipXAxis: bool
-      ## whether or not to delay the calculation of the X-axis coordinates
-    boxFlags*: uint8 ## determines how it behaves as a parent
-    anchorFlags*: uint8 ## determines how it behaves as a child inside of a parent node
+  Align* = enum
+    ## Absolute directional alignment for a single node (axis-agnostic, supports combination).
+    ## Purpose: Aligns node by fixed directions (left/top/right/bottom) within parent container, independent of main/cross axis.
 
-    firstChild*: LayoutNodeID
-    lastChild*: LayoutNodeID
-    prevSibling*: LayoutNodeID
-    nextSibling*: LayoutNodeID
+    AlignLeft = 0x01
+    AlignTop = 0x02
+    AlignRight = 0x04
+    AlignBottom = 0x08
 
-    margin*: Vec4
-    size*: Vec2
+  AxisAlign = enum
+    ## Axis-dependent alignment.
 
-    computed*: Vec4
-      ## the calculated rectangle of an node.
-      ## The components of the vector are:
-      ## 0: x starting position, 1: y starting position, 2: width, 3: height.
+    AxisAlignMiddle = 0x00
+    AxisAlignStart = 0x01
+    AxisAlignEnd = 0x04
+    AxisAlignStretch = 0x05
 
-  LayoutObj* = object
-    nodes*: seq[LayoutNodeObj]
-    caches: seq[LayoutCacheObj] ## Cache the results of breadth-first traversals
+  MainAxisAlign* = enum
+    ## Corresponding to Flex layout's `justify-content`.
+    ## Controls the alignment of all nodes on the main axis.
 
-const
-  ## layout, default is center in both directions, with left/top margin as offset.
-  LayoutLeft* = 0x01 ## anchor to left node or left side of parent
-  LayoutTop* = 0x02 ## anchor to top node or top side of parent
-  LayoutRight* = 0x04 ## anchor to right node or right side of parent
-  LayoutBottom* = 0x08 ## anchor to bottom node or bottom side of parent
-  LayoutHorizontalFill* = LayoutLeft or LayoutRight
-    ## anchor to both left and right node or parent borders
-  LayoutVerticalFill* = LayoutTop or LayoutBottom
-    ## anchor to both top and bottom node or parent borders
-  LayoutFill* = LayoutHorizontalFill or LayoutVerticalFill
-    ## anchor to all four directions
+    MainAxisAlignMiddle = AxisAlignMiddle
+    MainAxisAlignStart = AxisAlignStart
+    MainAxisAlignEnd = AxisAlignEnd
+    MainAxisAlignSpaceBetween = 0x08
+    MainAxisAlignSpaceAround = 0x10
+    MainAxisAlignSpaceEvenly = 0x18
 
-  ## flex-wrap, the default is single-line.
-  LayoutBoxNoWrap* = 0x000
-  LayoutBoxWrap* = 0x004 ## multi-line, wrap left to right
+  CrossAxisAlign* = enum
+    ## Corresponding to Flex layout's `align-items`.
+    ## Controls the alignment of all nodes on the cross axis.
 
-  ## justify-content (start, end, center, space-between), the default is center.
-  LayoutBoxMiddle* = 0x000 ## at center of row/column
-  LayoutBoxStart* = 0x008 ## at start of row/column
-  LayoutBoxEnd* = 0x010 ## at end of row/column
-  LayoutBoxJustify* = LayoutBoxStart or LayoutBoxEnd
-    ## insert spacing to stretch across whole row/column, default is space-between
+    CrossAxisAlignMiddle = AxisAlignMiddle
+    CrossAxisAlignStart = AxisAlignStart
+    CrossAxisAlignEnd = AxisAlignEnd
+    CrossAxisAlignStretch = AxisAlignStretch
 
-  LayoutBoxSpaceBetween* = LayoutBoxJustify or 0x000
-  LayoutBoxSpaceAround* = LayoutBoxJustify or 0x020
-  LayoutBoxSpaceEvenly* = LayoutBoxJustify or 0x040
+  CrossAxisLineAlign* = enum
+    ## Corresponding to Flex layout's `align-content`.
+    ## Controls alignment and spacing of multiple flex lines along the cross axis (only effective in multi-line layouts).
 
-  ## layout type, default is free layout.
-  LayoutBoxFree* = 0x000 ## free layout
-  LayoutBoxRow* = 0x002 ## flex layout, left to right
-  LayoutBoxColumn* = 0x003 ## flex layout, top to bottom
+    CrossAxisLineAlignMiddle = AxisAlignMiddle
+    CrossAxisLineAlignStart = AxisAlignStart
+    CrossAxisLineAlignEnd = AxisAlignEnd
+    CrossAxisLineAlignStretch = AxisAlignStretch
+    CrossAxisLineAlignSpaceBetween = 0x08
+    CrossAxisLineAlignSpaceAround = 0x10
+    CrossAxisLineAlignSpaceEvenly = 0x18
 
-proc `$`*(id: LayoutNodeID): string =
+  Layout* = enum
+    ## Layout mode (controls child node arrangement direction).
+
+    LayoutFree = 0x00
+    LayoutRow = 0x01
+    LayoutColumn = 0x02
+
+  Wrap* = enum
+    ## Child node wrapping behavior (only effective in Flex layout).
+
+    WrapNoWrap = 0x00
+    WrapWrap = 0x01
+
+  Node* = object
+    ## Layout node (conceptually a 2D rectangle with layout properties and hierarchy).
+
+    id*: NodeID
+
+    isBreak: bool            ## Whether an node's children have already been wrapped.
+    isDelay: bool
+      ## Whether to delay axis calculation (for wrapped layouts).
+      ## When wrapping is enabled, main axis calculation depends on cross axis results (e.g., vertical layout needs y-axis first to calculate x-axis wrapping).
+
+    wrap*: Wrap
+    layout*: Layout
+    mainAxisAlign*: MainAxisAlign
+    crossAxisAlign*: CrossAxisAlign
+    crossAxisLineAlign*: CrossAxisLineAlign
+    align*: set[Align]
+
+    firstChild*: NodeID
+    lastChild*: NodeID
+    prevSibling*: NodeID
+    nextSibling*: NodeID
+
+    size*: array[2, float32] ## Explicit node size (order: width -> height).
+    gap*: array[2, float32] ## Node grid gap (order: column gap -> row gap).
+    margin*: array[4, float32] ## Node margin (order: left -> top -> right -> bottom).
+
+    computed*: array[4, float32]
+      ## Computed absolute rectangle.
+      ## Array components (order: x -> y -> width -> height):
+      ## - Index 0: Absolute X position (relative to root node, top-left corner).
+      ## - Index 1: Absolute Y position (relative to root node, top-left corner).
+      ## - Index 2: Computed width.
+      ## - Index 3: Computed height.
+
+  Context* = object
+    nodes*: seq[Node]
+    caches: seq[NodeCache] ## Cache for breadth-first traversal results (speeds up child node indexing).
+
+proc `$`*(id: NodeID): string =
   if id != NIL:
     return fmt"NODE{int(id)}"
   return "NIL"
 
-proc isNil*(id: LayoutNodeID): bool {.inline, raises: [].} =
+proc isNil*(id: NodeID): bool {.inline.} =
   id == NIL
 
-proc node*(
-    l: ptr LayoutObj, id: LayoutNodeID
-): ptr LayoutNodeObj {.inline, raises: [].} =
+proc node*(l: ptr Context, id: NodeID): ptr Node =
   let idx = int32(id) - 1
   if idx >= 0 and idx < len(l.nodes):
     return l.nodes[idx].addr
 
-proc model(n: ptr LayoutNodeObj): int {.inline, raises: [].} =
-  int(n.boxFlags and 0x7)
-
-proc direction(n: ptr LayoutNodeObj): int {.inline, raises: [].} =
-  int(n.boxFlags and 0x1)
-
-proc axisAnchorFlags(
-    n: ptr LayoutNodeObj, dim: static[int]
-): int {.inline, raises: [].} =
-  (int(n.anchorFlags and 0x1F) shr dim) and LayoutHorizontalFill
-
-proc firstChild*(
-    l: ptr LayoutObj, n: ptr LayoutNodeObj
-): ptr LayoutNodeObj {.inline, raises: [].} =
-  let nodeID = n.firstChild
-  if not nodeID.isNil:
-    return l.node(nodeID)
-  return nil
-
-proc lastChild*(
-    l: ptr LayoutObj, n: ptr LayoutNodeObj
-): ptr LayoutNodeObj {.inline, raises: [].} =
-  let nodeID = n.lastChild
-  if not nodeID.isNil:
-    return l.node(nodeID)
-  return nil
-
-proc nextSibling*(
-    l: ptr LayoutObj, n: ptr LayoutNodeObj
-): ptr LayoutNodeObj {.inline, raises: [].} =
-  let nodeID = n.nextSibling
-  if not nodeID.isNil:
-    return l.node(nodeID)
-  return nil
-
-iterator children*(
-    l: ptr LayoutObj, n: ptr LayoutNodeObj
-): ptr LayoutNodeObj {.inline, raises: [].} =
-  var nodeID = n.firstChild
-  while not nodeID.isNil:
-    let n = l.node(nodeID)
-    nodeID = n.nextSibling
+iterator children*(l: ptr Context, n: ptr Node): ptr Node =
+  var n = l.node(n.firstChild)
+  while not n.isNil:
     yield n
+    n = l.node(n.nextSibling)
 
-proc calcStackedSize(
-    l: ptr LayoutObj, c: ptr LayoutCacheObj, dim: static[int]
-): float {.inline, raises: [].} =
-  const wDim = dim + 2
+proc calcStackedSize(l: ptr Context, c: ptr NodeCache, dim: int32): float32 =
+  let wDim = dim + 2
 
   var needSize = 0f
 
@@ -141,10 +143,8 @@ proc calcStackedSize(
     needSize = needSize + size
   needSize
 
-proc calcOverlayedSize(
-    l: ptr LayoutObj, c: ptr LayoutCacheObj, dim: static[int]
-): float {.inline, raises: [].} =
-  const wDim = dim + 2
+proc calcOverlayedSize(l: ptr Context, c: ptr NodeCache, dim: int32): float32 =
+  let wDim = dim + 2
 
   var needSize = 0f
 
@@ -154,10 +154,9 @@ proc calcOverlayedSize(
     needSize = max(size, needSize)
   needSize
 
-proc calcWrappedOverlayedSize(
-    l: ptr LayoutObj, c: ptr LayoutCacheObj, dim: static[int]
-): float {.inline, raises: [].} =
-  const wDim = dim + 2
+proc calcWrappedOverlayedSize(l: ptr Context, c: ptr NodeCache,
+    dim: int32): float32 =
+  let wDim = dim + 2
 
   var needSize = 0f
   var needSize2 = 0f
@@ -171,10 +170,9 @@ proc calcWrappedOverlayedSize(
     needSize = max(needSize, size)
   needSize + needSize2
 
-proc calcWrappedStackedSize(
-    l: ptr LayoutObj, c: ptr LayoutCacheObj, dim: static[int]
-): float {.inline, raises: [].} =
-  const wDim = dim + 2
+proc calcWrappedStackedSize(l: ptr Context, c: ptr NodeCache,
+    dim: int32): float32 =
+  let wDim = dim + 2
 
   var needSize = 0f
   var needSize2 = 0f
@@ -188,10 +186,37 @@ proc calcWrappedStackedSize(
     needSize = needSize + size
   max(needSize2, needSize)
 
-proc calcSize(l: ptr LayoutObj, dim: static[int]) {.inline, raises: [].} =
-  const wDim = dim + 2
+template combine(layout: Layout, wrap: Wrap): uint32 =
+  uint32(ord(layout) + (ord(wrap) shl 8))
 
-  # Note that we are doing a reverse-order loop here, 
+template isSameAxis(layout: Layout, dim: int32): bool =
+  ord(layout) == (dim + 1)
+
+template toAxisAlign(align: set[Align], dim: int32): AxisAlign =
+  var bits = uint32(0)
+  for a in [AlignLeft, AlignTop, AlignRight, AlignBottom]:
+    if a in align:
+      bits = bits or uint32(a)
+
+  cast[AxisAlign]((bits shr dim) and ord(AxisAlignStretch))
+
+template toAxisAlign(layout: Layout, crossAxisAlign: CrossAxisAlign,
+    dim: int32): AxisAlign =
+  if isSameAxis(layout, dim):
+    AxisAlignMiddle
+  else:
+    cast[AxisAlign](crossAxisAlign)
+
+    # case crossAxisAlign
+    # of CrossAxisAlignMiddle: AxisAlignMiddle
+    # of CrossAxisAlignStart: AxisAlignStart
+    # of CrossAxisAlignEnd: AxisAlignEnd
+    # of CrossAxisAlignStretch: AxisAlignStretch
+
+proc calcSize(l: ptr Context, dim: int32) =
+  let wDim = dim + 2
+
+  # Note that we are doing a reverse-order loop here,
   # so the child nodes are always calculated before the parent nodes.
   var idx = l.caches.len
   while idx > 0:
@@ -200,7 +225,7 @@ proc calcSize(l: ptr LayoutObj, dim: static[int]) {.inline, raises: [].} =
     let c = l.caches[idx].addr
     let n = c.node
 
-    # Set the mutable rect output data to the starting input data
+    # Set the mutable rect output data to the starting input data.
     n.computed[dim] = n.margin[dim]
 
     # If we have an explicit input size, just set our output size (which other
@@ -209,24 +234,20 @@ proc calcSize(l: ptr LayoutObj, dim: static[int]) {.inline, raises: [].} =
       n.computed[wDim] = n.size[dim]
       continue
 
-    # Calculate our size based on children items.
     let needSize =
-      case n.model
-      of LayoutBoxColumn or LayoutBoxWrap:
-        # flex model
-        when dim > 0:
-          l.calcStackedSize(c, 1)
+      case combine(n.layout, n.wrap)
+      of combine(LayoutColumn, WrapWrap):
+        if dim > 0:
+          l.calcStackedSize(c, dim)
         else:
-          l.calcOverlayedSize(c, 0)
-      of LayoutBoxRow or LayoutBoxWrap:
-        # flex model
-        when dim > 0:
-          l.calcWrappedOverlayedSize(c, 1)
+          l.calcOverlayedSize(c, dim)
+      of combine(LayoutRow, WrapWrap):
+        if dim > 0:
+          l.calcWrappedOverlayedSize(c, dim)
         else:
-          l.calcWrappedStackedSize(c, 0)
-      of LayoutBoxColumn, LayoutBoxRow:
-        # flex model
-        if n.direction() == dim:
+          l.calcWrappedStackedSize(c, dim)
+      of combine(LayoutRow, WrapNoWrap), combine(LayoutColumn, WrapNoWrap):
+        if isSameAxis(n.layout, dim):
           l.calcStackedSize(c, dim)
         else:
           l.calcOverlayedSize(c, dim)
@@ -238,21 +259,21 @@ proc calcSize(l: ptr LayoutObj, dim: static[int]) {.inline, raises: [].} =
     # and by arrange procedures.
     n.computed[wDim] = needSize
 
-proc arrangeStacked(
-    l: ptr LayoutObj, c: ptr LayoutCacheObj, dim: static[int], wrap: static[bool]
-) {.inline, raises: [].} =
-  const wDim = dim + 2
+proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
+  ## Calculate line wrapping, stretching, and gap filling of all child nodes of the node on the main axis.
+
+  let wDim = dim + 2
 
   let n = c.node
 
   let computed = n.computed
   let space = computed[wDim]
+  let gap = n.gap[dim]
 
   var arrangeRangeBegin = c.childOffset
   let arrangeRangeEnd = c.childOffset + c.childCount
 
-  when wrap:
-    let maxX2 = computed[dim] + space
+  let maxX2 = computed[dim] + space
 
   while arrangeRangeBegin != arrangeRangeEnd:
     var used = 0f
@@ -260,77 +281,78 @@ proc arrangeStacked(
     # count of fillers
     var count = 0
 
-    # count of squeezable elements
-    var squeezedCount = 0
     var total = 0
-    var itemCount = 0
+    var nodeCount = 0
 
     var expandRangeEnd = arrangeRangeEnd
 
-    # first pass: count items that need to be expanded, and the space that is used
+    # first pass: count nodes that need to be expanded, and the space that is used.
     for idx in arrangeRangeBegin ..< arrangeRangeEnd:
       let child = l.caches[idx].node
 
-      inc itemCount, 1
-      var extend = used + child.computed[dim] + child.margin[wDim]
+      inc nodeCount, 1
+      var extend = used + child.computed[dim] + child.margin[wDim] +
+          child.computed[wDim]
 
-      if child.axisAnchorFlags(dim) == LayoutHorizontalFill:
+      if idx != arrangeRangeBegin:
+        extend = extend + gap
+
+      if toAxisAlign(child.align, dim) == AxisAlignStretch:
         inc count
-      else:
-        if child.size[dim] <= 0:
-          inc squeezedCount
-        extend = extend + child.computed[wDim]
 
-      when wrap:
+      if wrap:
         # wrap on end of line
         if total > 0 and extend > space:
           expandRangeEnd = idx
 
           # add marker for subsequent queries
           child.isBreak = true
-          itemCount = 0
+          nodeCount = 0
           break
 
-      inc total
+      inc total, 1
       used = extend
 
     let extraSpace = space - used
     var filler = 0f
     var spacer = 0f
     var extraMargin = 0f
-    var eater = 0f
 
     if extraSpace > 0:
       if count > 0:
-        filler = extraSpace / float(count)
+        filler = extraSpace / float32(count)
       elif total > 0:
-        case n.boxFlags and LayoutBoxJustify
-        of LayoutBoxJustify:
-          # justify when not wrapping or at least one remaining element
-          if not wrap or (itemCount > 0 or expandRangeEnd != arrangeRangeEnd):
-            case n.boxFlags and
-              (LayoutBoxSpaceBetween or LayoutBoxSpaceAround or LayoutBoxSpaceEvenly)
-            of LayoutBoxSpaceAround:
-              spacer = extraSpace / float32(total)
-              extraMargin = spacer / 2
-            of LayoutBoxSpaceEvenly:
-              spacer = extraSpace / float32(total + 1)
-              extraMargin = spacer
-            else:
-              # space-between
-              spacer = extraSpace / float32(total - 1)
-        of LayoutBoxStart:
+        case n.mainAxisAlign
+        of MainAxisAlignSpaceBetween:
+          if not wrap or nodeCount > 0 or expandRangeEnd != arrangeRangeEnd:
+            spacer = extraSpace / float32(total - 1)
+        of MainAxisAlignSpaceAround:
+          if not wrap or nodeCount > 0 or expandRangeEnd != arrangeRangeEnd:
+            spacer = extraSpace / float32(total)
+            extraMargin = spacer / 2
+        of MainAxisAlignSpaceEvenly:
+          if not wrap or nodeCount > 0 or expandRangeEnd != arrangeRangeEnd:
+            spacer = extraSpace / float32(total + 1)
+            extraMargin = spacer
+        of MainAxisAlignStart:
           discard
-        of LayoutBoxEnd:
+        of MainAxisAlignEnd:
           extraMargin = extraSpace
-        else:
+        of MainAxisAlignMiddle:
           extraMargin = extraSpace / 2
     else:
-      when not wrap:
-        if extraSpace < 0 and squeezedCount > 0:
-          eater = extraSpace / float(squeezedCount)
+      if not wrap:
+        if total > 0:
+          case n.mainAxisAlign
+          of MainAxisAlignSpaceBetween, MainAxisAlignSpaceAround,
+              MainAxisAlignSpaceEvenly, MainAxisAlignStart:
+            discard
+          of MainAxisAlignEnd:
+            extraMargin = extraSpace
+          of MainAxisAlignMiddle:
+            extraMargin = extraSpace / 2
 
-    # distribute width among items
+        # distribute width among nodes
     var x = computed[dim]
     var x1 = 0f
 
@@ -338,19 +360,19 @@ proc arrangeStacked(
     for idx in arrangeRangeBegin ..< expandRangeEnd:
       let child = l.caches[idx].node
 
-      x += child.computed[dim] + extraMargin
-      if child.axisAnchorFlags(dim) == LayoutHorizontalFill:
+      x = x + child.computed[dim] + extraMargin
+      if idx != arrangeRangeBegin:
+        x = x + gap
+
+      if toAxisAlign(child.align, dim) == AxisAlignStretch:
         # grow
-        x1 = x + filler
-      elif child.size[dim] > 0:
-        x1 = x + child.computed[wDim]
+        x1 = x + child.computed[wDim] + filler
       else:
-        # squeeze
-        x1 = x + max(0f, child.computed[wDim] + eater)
+        x1 = x + child.computed[wDim]
 
       let ix0 = x
       let ix1 =
-        when wrap:
+        if wrap:
           min(maxX2 - child.margin[wDim], x1)
         else:
           x1
@@ -363,10 +385,8 @@ proc arrangeStacked(
 
     arrangeRangeBegin = expandRangeEnd
 
-proc arrangeOverlay(
-    l: ptr LayoutObj, c: ptr LayoutCacheObj, dim: static[int]
-) {.inline, raises: [].} =
-  const wDim = dim + 2
+proc arrangeOverlay(l: ptr Context, c: ptr NodeCache, dim: int32) =
+  let wDim = dim + 2
 
   let n = c.node
   let offset = n.computed[dim]
@@ -374,152 +394,237 @@ proc arrangeOverlay(
 
   for idx in c.childOffset ..< c.childOffset + c.childCount:
     let child = l.caches[idx].node
-    case child.axisAnchorFlags(dim)
-    of LayoutHorizontalFill:
+
+    case toAxisAlign(child.align, dim)
+    of AxisAlignStretch:
       child.computed[wDim] = max(0f, space - child.computed[dim] - child.margin[wDim])
-    of LayoutRight:
+    of AxisAlignEnd:
       child.computed[dim] =
         child.computed[dim] + space - child.computed[wDim] - child.margin[dim] -
         child.margin[wDim]
-    of LayoutLeft:
+    of AxisAlignStart:
       discard
-    else:
+    of AxisAlignMiddle:
       child.computed[dim] =
         child.computed[dim] +
-        max(0f, (space - child.computed[wDim]) / 2 - child.margin[wDim])
+        max(0f, (space - child.computed[wDim] - child.margin[dim] -
+            child.margin[wDim]) / 2)
+
     child.computed[dim] = child.computed[dim] + offset
 
-proc arrangeOverlaySqueezedRange(
-    l: ptr LayoutObj,
-    dim: static[int],
-    squeezedRangeBegin, arrangeRangeEnd: uint32,
-    offset, space: float,
-) {.inline, raises: [].} =
-  const wDim = dim + 2
+proc arrangeOverlaySqueezedRange(l: ptr Context, dim: int32,
+    inheritedAxisAlign: AxisAlign, squeezedRangeBegin, arrangeRangeEnd: uint32,
+    offset, space: float32) =
+  let wDim = dim + 2
 
   for idx in squeezedRangeBegin ..< arrangeRangeEnd:
     let child = l.caches[idx].node
     let minSize = max(0f, space - child.computed[dim] - child.margin[wDim])
-    case child.axisAnchorFlags(dim)
-    of LayoutHorizontalFill:
+    let align = if len(child.align) != 0:
+        toAxisAlign(child.align, dim)
+      else:
+        inheritedAxisAlign
+
+    case align
+    of AxisAlignStretch:
       child.computed[wDim] = minSize
-    of LayoutLeft:
+    of AxisAlignStart:
       child.computed[wDim] = min(child.computed[wDim], minSize)
-    of LayoutRight:
+    of AxisAlignEnd:
       child.computed[wDim] = min(child.computed[wDim], minSize)
       child.computed[dim] = space - child.computed[wDim] - child.margin[wDim]
-    else:
+    of AxisAlignMiddle:
       child.computed[wDim] = min(child.computed[wDim], minSize)
       child.computed[dim] =
         child.computed[dim] +
-        max(0f, (space - child.computed[wDim]) / 2 - child.margin[wDim])
+        max(0f, (space - child.computed[wDim] - child.margin[dim] -
+            child.margin[wDim]) / 2)
+
     child.computed[dim] = child.computed[dim] + offset
 
-proc arrangeWrappedOverlaySqueezed(
-    l: ptr LayoutObj, c: ptr LayoutCacheObj, dim: static[int]
-): float {.inline, raises: [].} =
-  const wDim = dim + 2
+proc arrangeWrappedOverlaySqueezed(l: ptr Context, c: ptr NodeCache,
+    dim: int32) =
+  ## Calculate stretching and gap filling of all child nodes of the node on the cross axis.
+
+  let wDim = dim + 2
 
   let n = c.node
+  let space = n.computed[wDim]
+  let gap = n.gap[dim]
+  let inheritedAxisAlign = toAxisAlign(n.layout, n.crossAxisAlign, dim)
 
   var offset = n.computed[dim]
   var needSize = 0f
 
   var squeezedRangeBegin = c.childOffset
 
+  var lineCount = 1
+  var extraSpace = 0f
+  var extraMargin = 0f
+  var spacer = 0f
+  var filler = 0f
+
+  block:
+    var used = 0f
+
+    for idx in c.childOffset ..< c.childOffset + c.childCount:
+      let child = l.caches[idx].node
+      if child.isBreak:
+        inc lineCount, 1
+        used = used + needSize
+        needSize = 0
+
+      let childSize = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
+      needSize = max(needSize, childSize)
+    used = used + needSize
+
+    if lineCount > 1:
+      spacer = gap
+      used = used + float32(lineCount - 1) * gap
+
+    extraSpace = space - used
+    needSize = 0
+
+  case n.crossAxisLineAlign
+  of CrossAxisLineAlignMiddle:
+    extraMargin = extraSpace / 2
+  of CrossAxisLineAlignStart:
+    discard
+  of CrossAxisLineAlignEnd:
+    extraMargin = extraSpace
+  of CrossAxisLineAlignStretch:
+    if extraSpace > 0:
+      let space = extraSpace / float32(lineCount)
+      spacer = spacer + space
+      filler = space
+  of CrossAxisLineAlignSpaceBetween:
+    if extraSpace > 0 and lineCount > 1:
+      let space = extraSpace / float32(lineCount - 1)
+      spacer = spacer + space
+  of CrossAxisLineAlignSpaceAround:
+    if extraSpace > 0:
+      let space = extraSpace / float32(lineCount)
+      spacer = spacer + space
+      extraMargin = space / 2
+  of CrossAxisLineAlignSpaceEvenly:
+    if extraSpace > 0:
+      let space = extraSpace / float32(lineCount + 1)
+      spacer = spacer + space
+      extraMargin = space
+
   for idx in c.childOffset ..< c.childOffset + c.childCount:
     let child = l.caches[idx].node
     if child.isBreak:
-      l.arrangeOverlaySqueezedRange(dim, squeezedRangeBegin, idx, offset, needSize)
+      offset = offset + extraMargin
+      l.arrangeOverlaySqueezedRange(
+        dim, inheritedAxisAlign, squeezedRangeBegin, idx, offset, needSize + filler
+      )
       offset = offset + needSize
+      extraMargin = spacer
+
       squeezedRangeBegin = idx
       needSize = 0
 
     let childSize = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
     needSize = max(needSize, childSize)
 
+  offset = offset + extraMargin
   l.arrangeOverlaySqueezedRange(
-    dim, squeezedRangeBegin, c.childOffset + c.childCount, offset, needSize
+    dim,
+    inheritedAxisAlign,
+    squeezedRangeBegin,
+    c.childOffset + c.childCount,
+    offset,
+    needSize + filler,
   )
-  offset + needSize
 
-proc arrange(
-    l: ptr LayoutObj, c: ptr LayoutCacheObj, dim: static[int]
-) {.inline, raises: [].} =
-  const wDim = dim + 2
+proc arrange(l: ptr Context, c: ptr NodeCache, dim: int32) =
+  let wDim = dim + 2
 
   let n = c.node
 
-  case n.model
-  of LayoutBoxColumn or LayoutBoxWrap:
+  case combine(n.layout, n.wrap)
+  of combine(LayoutColumn, WrapWrap):
     if dim > 0:
-      assert n.isSkipXAxis
+      assert n.isDelay
 
-      # The X-axis are recalculated here.
-      l.arrangeStacked(c, 1, true)
-      let offset = l.arrangeWrappedOverlaySqueezed(c, 0)
-      n.computed[2] = offset - n.computed[0]
-  of LayoutBoxRow or LayoutBoxWrap:
+      # When the main axis is vertical,
+      # line wrapping affects the x-axis calculation results of all child nodes.
+      # therefore, calculate the y-axis first.
+
+      l.arrangeStacked(c, dim, true)
+      l.arrangeWrappedOverlaySqueezed(c, 0)
+  of combine(LayoutRow, WrapWrap):
     if dim > 0:
-      discard l.arrangeWrappedOverlaySqueezed(c, 1)
-    else:
+      assert n.isDelay
+
+      # ditto
+
       l.arrangeStacked(c, 0, true)
-  of LayoutBoxColumn, LayoutBoxRow:
-    if n.direction() == dim:
+      l.arrangeWrappedOverlaySqueezed(c, dim)
+  of combine(LayoutRow, WrapNoWrap), combine(LayoutColumn, WrapNoWrap):
+    if isSameAxis(n.layout, dim):
       l.arrangeStacked(c, dim, false)
     else:
       l.arrangeOverlaySqueezedRange(
         dim,
+        cast[AxisAlign](ord(n.crossAxisAlign)),
         c.childOffset,
         c.childOffset + c.childCount,
         n.computed[dim],
         n.computed[wDim],
       )
   else:
+    # free layout model
     l.arrangeOverlay(c, dim)
 
-proc arrange(l: ptr LayoutObj, dim: static[int]) {.inline, raises: [].} =
+proc arrange(l: ptr Context, dim: int32) =
   for idx in 0 ..< l.caches.len:
     let c = l.caches[idx].addr
     let n = c.node
 
-    when dim <= 0:
-      if not n.isSkipXAxis:
+    if dim <= 0:
+      if not n.isDelay:
         l.arrange(c, dim)
     else:
       l.arrange(c, dim)
 
-      if n.isSkipXAxis:
+      if n.isDelay:
         l.arrange(c, 0)
 
-proc compute*(l: ptr LayoutObj, n: ptr LayoutNodeObj) {.inline, raises: [].} =
-  n.isSkipXAxis = false
+proc compute*(l: ptr Context, n: ptr Node) =
+  ## Core layout calculation entry: Computes size and absolute position (computed field) for the target node and its subtree.
+  ## Process: Breadth-first traversal -> cache nodes -> calculate base size (calcSize) -> arrange positions + stretch (arrange) -> clear cache.
 
-  l.caches.add(LayoutCacheObj(node: n))
+  n.isDelay = false
+
+  l.caches.add(NodeCache(node: n))
 
   var idx = 0
 
-  # Cache the results of the breadth-first traversal. 
-  # For subsequent calculations, you can directly access the child nodes using subscripts.
+  # Step 1: Breadth-first traversal of the subtree, cache all nodes.
+  # Purpose: 1. Ensure child nodes are calculated before parent nodes (reverse order later); 2. Allow direct subscript access to children via cache (childOffset/childCount).
   while idx < l.caches.len:
     let n = l.caches[idx].node
     let childOffset = uint32(l.caches.len)
 
-    if n.model == int(LayoutBoxColumn or LayoutBoxWrap):
-      # delayed calculations are required
-      n.isSkipXAxis = true
+    # Enable delay calculation if wrapping is enabled (needs to compute one axis first for line wrapping).
+    if n.wrap == WrapWrap:
+      n.isDelay = true
 
     n.isBreak = false
 
     var count = 0
-    let isSkipXAxis = n.isSkipXAxis
+    let isDelay = n.isDelay
 
+    # Traverse all direct children of current node, add to cache.
     for child in l.children(n):
       inc count, 1
 
-      child.isSkipXAxis = isSkipXAxis
-      l.caches.add(LayoutCacheObj(node: child))
+      child.isDelay = isDelay
+      l.caches.add(NodeCache(node: child))
 
+    # Update current node's cache info: Child nodes' position and count in cache.
     let c = l.caches[idx].addr
     c.childOffset = childOffset
     c.childCount = uint32(count)
@@ -527,10 +632,15 @@ proc compute*(l: ptr LayoutObj, n: ptr LayoutNodeObj) {.inline, raises: [].} =
     inc idx, 1
 
   template computeDim(dim) =
+    # Step 2: Calculate base required size (no expansion) -> fills computed[2/3] (width/height).
     l.calcSize(dim)
+    # Step 3: Arrange positions + handle space filling/stretching -> updates computed[0/1] (x/y) and adjusts size if needed.
     l.arrange(dim)
 
+  # Calculate x-axis (dim=0) first, then y-axis (dim=1).
+  # Order depends on layout mode: Wrapped layouts use `isDelay` to ensure correct dependency order.
   computeDim(0)
   computeDim(1)
 
+  # Step 4: Clear traversal cache (cache is only used during compute).
   l.caches.setLen(0)
