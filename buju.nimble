@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.2.3"
+version       = "0.3.0"
 author        = "haoyu234"
 description   = "simple layout engine"
 license       = "MIT"
@@ -11,4 +11,3 @@ installExt    = @["nim"]
 # Dependencies
 
 requires "nim >= 1.6.0"
-requires "vmath >= 2.0.0"
