@@ -4,7 +4,7 @@ buju (布局) is a simple layout engine, it is a Nim port of [layout.h](https://
 It has fixed several bugs left over from the original implementation and optimized the performance of some functions.
 
 # Features
-1. [Layout Visualization Tool](https://htmlpreview.github.io/?https://github.com/haoyu234/buju/blob/crossaxis/assets/viewer.html) - Used to debug exported layout JSON files.
+1. [Layout Visualization Tool](https://htmlpreview.github.io/?https://github.com/haoyu234/buju/blob/main/assets/viewer.html) - Used to debug exported layout JSON files.
 2. Added main/cross axis alignment and gap support compared to the original version.
 
 # Example
