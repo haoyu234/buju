@@ -10,8 +10,8 @@ type
     ## Cache for breadth-first traversal results (optimizes child node access).
 
     node: ptr Node
-    childOffset: uint32 ## Starting index of the node's children in the cache.
-    childCount: uint32  ## Count of direct children of the cached node.
+    childOffset: int32 ## Starting index of the node's children in the cache.
+    childCount: int32  ## Count of direct children of the cached node.
 
   Align* = enum
     ## Absolute directional alignment for a single node (axis-agnostic, supports combination).
@@ -115,7 +115,7 @@ type
 
 proc `$`*(id: NodeID): string =
   if id != NIL:
-    return fmt"NODE{int(id)}"
+    return fmt"NODE{int32(id)}"
   return "NIL"
 
 proc isNil*(id: NodeID): bool {.inline.} =
@@ -218,7 +218,7 @@ proc calcSize(l: ptr Context, dim: int32) =
 
   # Note that we are doing a reverse-order loop here,
   # so the child nodes are always calculated before the parent nodes.
-  var idx = l.caches.len
+  var idx = int32(l.caches.len)
   while idx > 0:
     dec idx, 1
 
@@ -279,10 +279,10 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
     var used = 0f
 
     # count of fillers
-    var count = 0
+    var count = int32(0)
 
-    var total = 0
-    var nodeCount = 0
+    var total = int32(0)
+    var nodeCount = int32(0)
 
     var expandRangeEnd = arrangeRangeEnd
 
@@ -413,7 +413,7 @@ proc arrangeOverlay(l: ptr Context, c: ptr NodeCache, dim: int32) =
     child.computed[dim] = child.computed[dim] + offset
 
 proc arrangeOverlaySqueezedRange(l: ptr Context, dim: int32,
-    inheritedAxisAlign: AxisAlign, squeezedRangeBegin, arrangeRangeEnd: uint32,
+    inheritedAxisAlign: AxisAlign, squeezedRangeBegin, arrangeRangeEnd: int32,
     offset, space: float32) =
   let wDim = dim + 2
 
@@ -458,7 +458,7 @@ proc arrangeWrappedOverlaySqueezed(l: ptr Context, c: ptr NodeCache,
 
   var squeezedRangeBegin = c.childOffset
 
-  var lineCount = 1
+  var lineCount = int32(1)
   var extraSpace = 0f
   var extraMargin = 0f
   var spacer = 0f
@@ -598,38 +598,42 @@ proc compute*(l: ptr Context, n: ptr Node) =
 
   n.isDelay = false
 
-  l.caches.add(NodeCache(node: n))
+  l.caches.setLen(l.nodes.len)
 
-  var idx = 0
+  var idx = int32(0)
+  var count = int32(0)
+
+  template addToCache(n2) =
+    l.caches[count] = NodeCache(node: n2)
+    inc count, 1
+
+  addToCache(n)
 
   # Step 1: Breadth-first traversal of the subtree, cache all nodes.
   # Purpose: 1. Ensure child nodes are calculated before parent nodes (reverse order later); 2. Allow direct subscript access to children via cache (childOffset/childCount).
-  while idx < l.caches.len:
-    let n = l.caches[idx].node
-    let childOffset = uint32(l.caches.len)
+  while idx < count:
+    let
+      c = l.caches[idx].addr
+      n = c.node
 
     # Enable delay calculation if wrapping is enabled (needs to compute one axis first for line wrapping).
     if n.wrap == WrapWrap:
       n.isDelay = true
 
     n.isBreak = false
-
-    var count = 0
-    let isDelay = n.isDelay
+    c.childOffset = count
 
     # Traverse all direct children of current node, add to cache.
     for child in l.children(n):
-      inc count, 1
+      inc c.childCount, 1
 
-      child.isDelay = isDelay
-      l.caches.add(NodeCache(node: child))
+      child.isDelay = n.isDelay
 
-    # Update current node's cache info: Child nodes' position and count in cache.
-    let c = l.caches[idx].addr
-    c.childOffset = childOffset
-    c.childCount = uint32(count)
+      addToCache(child)
 
     inc idx, 1
+
+  l.caches.setLen(count)
 
   template computeDim(dim) =
     # Step 2: Calculate base required size (no expansion) -> fills computed[2/3] (width/height).
