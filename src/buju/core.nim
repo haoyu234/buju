@@ -393,12 +393,9 @@ proc arrangeOverlaySqueezedRange(l: ptr Context, dim: int32,
   for idx in squeezedRangeBegin ..< arrangeRangeEnd:
     let child = l.caches[idx].node
     let minSize = max(0f, space - child.computed[dim] - child.margin[wDim])
-    let align = if len(child.align) != 0:
-        toAxisAlign(child.align, dim)
-      else:
-        inheritedAxisAlign
 
-    case align
+    let align = toAxisAlign(child.align, dim)
+    case cast[AxisAlign](ord(align) or ord(inheritedAxisAlign))
     of AxisAlignStretch:
       child.computed[wDim] = minSize
     of AxisAlignStart:
