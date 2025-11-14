@@ -266,14 +266,10 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
 
   let n = c.node
 
-  let computed = n.computed
-  let space = computed[wDim]
-  let gap = n.gap[dim]
+  let space = n.computed[wDim]
 
   var arrangeRangeBegin = c.childOffset
   let arrangeRangeEnd = c.childOffset + c.childCount
-
-  let maxX2 = computed[dim] + space
 
   while arrangeRangeBegin != arrangeRangeEnd:
     var used = 0f
@@ -282,7 +278,6 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
     var count = int32(0)
 
     var total = int32(0)
-    var nodeCount = int32(0)
 
     var expandRangeEnd = arrangeRangeEnd
 
@@ -290,15 +285,11 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
     for idx in arrangeRangeBegin ..< arrangeRangeEnd:
       let child = l.caches[idx].node
 
-      inc nodeCount, 1
       var extend = used + child.computed[dim] + child.margin[wDim] +
           child.computed[wDim]
 
       if idx != arrangeRangeBegin:
-        extend = extend + gap
-
-      if toAxisAlign(child.align, dim) == AxisAlignStretch:
-        inc count
+        extend = extend + n.gap[dim]
 
       if wrap:
         # wrap on end of line
@@ -307,8 +298,10 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
 
           # add marker for subsequent queries
           child.isBreak = true
-          nodeCount = 0
           break
+
+      if toAxisAlign(child.align, dim) == AxisAlignStretch:
+        inc count, 1
 
       inc total, 1
       used = extend
@@ -318,43 +311,30 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
     var spacer = 0f
     var extraMargin = 0f
 
-    if extraSpace > 0:
-      if count > 0:
-        filler = extraSpace / float32(count)
-      elif total > 0:
-        case n.mainAxisAlign
-        of MainAxisAlignSpaceBetween:
-          if not wrap or nodeCount > 0 or expandRangeEnd != arrangeRangeEnd:
-            spacer = extraSpace / float32(total - 1)
-        of MainAxisAlignSpaceAround:
-          if not wrap or nodeCount > 0 or expandRangeEnd != arrangeRangeEnd:
-            spacer = extraSpace / float32(total)
-            extraMargin = spacer / 2
-        of MainAxisAlignSpaceEvenly:
-          if not wrap or nodeCount > 0 or expandRangeEnd != arrangeRangeEnd:
-            spacer = extraSpace / float32(total + 1)
-            extraMargin = spacer
-        of MainAxisAlignStart:
-          discard
-        of MainAxisAlignEnd:
-          extraMargin = extraSpace
-        of MainAxisAlignMiddle:
-          extraMargin = extraSpace / 2
+    if extraSpace > 0 and count > 0:
+      filler = extraSpace / float32(count)
     else:
-      if not wrap:
-        if total > 0:
-          case n.mainAxisAlign
-          of MainAxisAlignSpaceBetween, MainAxisAlignSpaceAround,
-              MainAxisAlignSpaceEvenly, MainAxisAlignStart:
-            discard
-          of MainAxisAlignEnd:
-            extraMargin = extraSpace
-          of MainAxisAlignMiddle:
-            extraMargin = extraSpace / 2
+      case n.mainAxisAlign
+      of MainAxisAlignStart:
+        discard
+      of MainAxisAlignMiddle:
+        extraMargin = extraSpace / 2
+      of MainAxisAlignEnd:
+        extraMargin = extraSpace
+      of MainAxisAlignSpaceBetween:
+        if extraSpace > 0 and total > 1:
+          spacer = extraSpace / float32(total - 1)
+      of MainAxisAlignSpaceAround:
+        if extraSpace > 0 and total > 0:
+          spacer = extraSpace / float32(total)
+          extraMargin = spacer / 2
+      of MainAxisAlignSpaceEvenly:
+        if extraSpace > 0:
+          spacer = extraSpace / float32(total + 1)
+          extraMargin = spacer
 
-        # distribute width among nodes
-    var x = computed[dim]
-    var x1 = 0f
+    # distribute width among nodes
+    var x = n.computed[dim]
 
     # second pass: distribute and rescale
     for idx in arrangeRangeBegin ..< expandRangeEnd:
@@ -362,26 +342,19 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
 
       x = x + child.computed[dim] + extraMargin
       if idx != arrangeRangeBegin:
-        x = x + gap
+        x = x + n.gap[dim]
+
+      var w = child.computed[wDim]
 
       if toAxisAlign(child.align, dim) == AxisAlignStretch:
         # grow
-        x1 = x + child.computed[wDim] + filler
-      else:
-        x1 = x + child.computed[wDim]
+        w = w + filler
 
-      let ix0 = x
-      let ix1 =
-        if wrap:
-          min(maxX2 - child.margin[wDim], x1)
-        else:
-          x1
+      child.computed[dim] = x
+      child.computed[wDim] = w
 
-      child.computed[dim] = ix0 # pos
-      child.computed[wDim] = ix1 - ix0 # size
-
+      x = x + w + child.margin[wDim]
       extraMargin = spacer
-      x = x1 + child.margin[wDim]
 
     arrangeRangeBegin = expandRangeEnd
 
@@ -486,10 +459,10 @@ proc arrangeWrappedOverlaySqueezed(l: ptr Context, c: ptr NodeCache,
     needSize = 0
 
   case n.crossAxisLineAlign
-  of CrossAxisLineAlignMiddle:
-    extraMargin = extraSpace / 2
   of CrossAxisLineAlignStart:
     discard
+  of CrossAxisLineAlignMiddle:
+    extraMargin = extraSpace / 2
   of CrossAxisLineAlignEnd:
     extraMargin = extraSpace
   of CrossAxisLineAlignStretch:
