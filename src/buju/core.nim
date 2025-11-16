@@ -6,13 +6,6 @@ type
 
     NIL
 
-  NodeCache = object
-    ## Cache for breadth-first traversal results (optimizes child node access).
-
-    node: ptr Node
-    childOffset: int32 ## Starting index of the node's children in the cache.
-    childCount: int32  ## Count of direct children of the cached node.
-
   Align* = enum
     ## Absolute directional alignment for a single node (axis-agnostic, supports combination).
     ## Purpose: Aligns node by fixed directions (left/top/right/bottom) within parent container, independent of main/cross axis.
@@ -109,6 +102,13 @@ type
       ## - Index 2: Computed width.
       ## - Index 3: Computed height.
 
+  NodeCache = object
+    ## Cache for breadth-first traversal results (optimizes child node access).
+
+    node: ptr Node
+    childOffset: int32 ## Starting index of the node's children in the cache.
+    childCount: int32  ## Count of direct children of the cached node.
+
   Context* = object
     nodes*: seq[Node]
     caches: seq[NodeCache] ## Cache for breadth-first traversal results (speeds up child node indexing).
@@ -138,7 +138,10 @@ proc calcStackedSize(l: ptr Context, c: ptr NodeCache, dim: int32): float32 =
   var needSize = 0f
 
   for idx in c.childOffset ..< c.childOffset + c.childCount:
-    let child = l.caches[idx].node
+    let
+      cc = l.caches[idx].addr
+      child = cc.node
+
     let size = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
     needSize = needSize + size
   needSize
@@ -149,7 +152,10 @@ proc calcOverlayedSize(l: ptr Context, c: ptr NodeCache, dim: int32): float32 =
   var needSize = 0f
 
   for idx in c.childOffset ..< c.childOffset + c.childCount:
-    let child = l.caches[idx].node
+    let
+      cc = l.caches[idx].addr
+      child = cc.node
+
     let size = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
     needSize = max(size, needSize)
   needSize
@@ -162,10 +168,14 @@ proc calcWrappedOverlayedSize(l: ptr Context, c: ptr NodeCache,
   var needSize2 = 0f
 
   for idx in c.childOffset ..< c.childOffset + c.childCount:
-    let child = l.caches[idx].node
+    let
+      cc = l.caches[idx].addr
+      child = cc.node
+
     if child.isBreak:
       needSize2 = needSize2 + needSize
       needSize = 0
+
     let size = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
     needSize = max(needSize, size)
   needSize + needSize2
@@ -178,10 +188,14 @@ proc calcWrappedStackedSize(l: ptr Context, c: ptr NodeCache,
   var needSize2 = 0f
 
   for idx in c.childOffset ..< c.childOffset + c.childCount:
-    let child = l.caches[idx].node
+    let
+      cc = l.caches[idx].addr
+      child = cc.node
+
     if child.isBreak:
       needSize2 = max(needSize2, needSize)
       needSize = 0
+
     let size = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
     needSize = needSize + size
   max(needSize2, needSize)
@@ -222,8 +236,9 @@ proc calcSize(l: ptr Context, dim: int32) =
   while idx > 0:
     dec idx, 1
 
-    let c = l.caches[idx].addr
-    let n = c.node
+    let
+      c = l.caches[idx].addr
+      n = c.node
 
     # Set the mutable rect output data to the starting input data.
     n.computed[dim] = n.margin[dim]
@@ -283,7 +298,9 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
 
     # first pass: count nodes that need to be expanded, and the space that is used.
     for idx in arrangeRangeBegin ..< arrangeRangeEnd:
-      let child = l.caches[idx].node
+      let
+        cc = l.caches[idx].addr
+        child = cc.node
 
       var extend = used + child.computed[dim] + child.margin[wDim] +
           child.computed[wDim]
@@ -338,7 +355,9 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
 
     # second pass: distribute and rescale
     for idx in arrangeRangeBegin ..< expandRangeEnd:
-      let child = l.caches[idx].node
+      let
+        cc = l.caches[idx].addr
+        child = cc.node
 
       x = x + child.computed[dim] + extraMargin
       if idx != arrangeRangeBegin:
@@ -366,7 +385,9 @@ proc arrangeOverlay(l: ptr Context, c: ptr NodeCache, dim: int32) =
   let space = n.computed[wDim]
 
   for idx in c.childOffset ..< c.childOffset + c.childCount:
-    let child = l.caches[idx].node
+    let
+      cc = l.caches[idx].addr
+      child = cc.node
 
     case toAxisAlign(child.align, dim)
     of AxisAlignStretch:
@@ -391,7 +412,10 @@ proc arrangeOverlaySqueezedRange(l: ptr Context, dim: int32,
   let wDim = dim + 2
 
   for idx in squeezedRangeBegin ..< arrangeRangeEnd:
-    let child = l.caches[idx].node
+    let
+      cc = l.caches[idx].addr
+      child = cc.node
+
     let minSize = max(0f, space - child.computed[dim] - child.margin[wDim])
 
     let align = toAxisAlign(child.align, dim)
@@ -438,7 +462,10 @@ proc arrangeWrappedOverlaySqueezed(l: ptr Context, c: ptr NodeCache,
     var used = 0f
 
     for idx in c.childOffset ..< c.childOffset + c.childCount:
-      let child = l.caches[idx].node
+      let
+        cc = l.caches[idx].addr
+        child = cc.node
+
       if child.isBreak:
         inc lineCount, 1
         used = used + needSize
@@ -483,7 +510,10 @@ proc arrangeWrappedOverlaySqueezed(l: ptr Context, c: ptr NodeCache,
       extraMargin = space
 
   for idx in c.childOffset ..< c.childOffset + c.childCount:
-    let child = l.caches[idx].node
+    let
+      cc = l.caches[idx].addr
+      child = cc.node
+
     if child.isBreak:
       offset = offset + extraMargin
       l.arrangeOverlaySqueezedRange(
@@ -550,8 +580,9 @@ proc arrange(l: ptr Context, c: ptr NodeCache, dim: int32) =
 
 proc arrange(l: ptr Context, dim: int32) =
   for idx in 0 ..< l.caches.len:
-    let c = l.caches[idx].addr
-    let n = c.node
+    let
+      c = l.caches[idx].addr
+      n = c.node
 
     if dim <= 0:
       if not n.isDelay:
