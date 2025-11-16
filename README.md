@@ -7,6 +7,11 @@ It has fixed several bugs left over from the original implementation and optimiz
 1. [Layout Visualization Tool](https://htmlpreview.github.io/?https://github.com/haoyu234/buju/blob/main/assets/viewer.html) - Used to debug exported layout JSON files.
 2. Added main/cross axis alignment and gap support compared to the original version.
 
+# Limitations
+1. Does not support constraint-based solving.
+2. Layout uses absolute coordinates.
+3. Only supports border-box.
+
 # Example
 ```nim
 import buju
