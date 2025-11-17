@@ -71,7 +71,11 @@ type
   Node* = object
     ## Layout node (conceptually a 2D rectangle with layout properties and hierarchy).
 
-    id*: NodeID
+    when defined(js):
+      id*: NodeID
+
+    when defined(debug):
+      parent*: NodeID
 
     firstChild*: NodeID
     lastChild*: NodeID
