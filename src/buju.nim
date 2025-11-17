@@ -77,7 +77,8 @@ proc node*(l: var Context): NodeID {.inline, raises: [].} =
   l.nodes.setLen(offset + 1)
 
   let id = cast[NodeID](l.nodes.len)
-  l.nodes[offset].id = id
+  when defined(js):
+    l.nodes[offset].id = id
 
   id
 
@@ -241,6 +242,11 @@ proc insertChild*(l: var Context, parentID, childID: NodeID) {.inline, raises: [
     c = l.node(childID)
 
   if not p.isNil and not c.isNil:
+    when defined(debug):
+      assert c.parent.isNil
+    assert c.prevSibling.isNil
+    assert c.nextSibling.isNil
+
     let lastChild = l.node(p.lastChild)
     if not lastChild.isNil:
       lastChild.nextSibling = childID
@@ -248,6 +254,9 @@ proc insertChild*(l: var Context, parentID, childID: NodeID) {.inline, raises: [
       c.prevSibling = p.lastChild
     else:
       p.firstChild = childID
+    
+    when defined(debug):
+      c.parent = parentID
     p.lastChild = childID
 
 proc removeChild*(l: var Context, parentID, childID: NodeID) {.inline, raises: [].} =
@@ -260,6 +269,10 @@ proc removeChild*(l: var Context, parentID, childID: NodeID) {.inline, raises: [
     c = l.node(childID)
 
   if not p.isNil and not c.isNil:
+    when defined(debug):
+      assert not c.parent.isNil
+      assert c.parent == parentID
+
     if c.nextSibling == c.prevSibling:
       p.lastChild = NIL
       p.firstChild = NIL
@@ -278,6 +291,8 @@ proc removeChild*(l: var Context, parentID, childID: NodeID) {.inline, raises: [
       if not prevSibling.isNil:
         prevSibling.nextSibling = c.nextSibling
 
+    when defined(debug):
+      c.parent = NIL
     c.prevSibling = NIL
     c.nextSibling = NIL
 
