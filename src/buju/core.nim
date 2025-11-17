@@ -73,6 +73,11 @@ type
 
     id*: NodeID
 
+    firstChild*: NodeID
+    lastChild*: NodeID
+    prevSibling*: NodeID
+    nextSibling*: NodeID
+
     isBreak: bool            ## Whether an node's children have already been wrapped.
     isDelay: bool
       ## Whether to delay axis calculation (for wrapped layouts).
@@ -85,14 +90,10 @@ type
     crossAxisLineAlign*: CrossAxisLineAlign
     align*: set[Align]
 
-    firstChild*: NodeID
-    lastChild*: NodeID
-    prevSibling*: NodeID
-    nextSibling*: NodeID
-
     size*: array[2, float32] ## Explicit node size (order: width -> height).
     gap*: array[2, float32] ## Node grid gap (order: column gap -> row gap).
     margin*: array[4, float32] ## Node margin (order: left -> top -> right -> bottom).
+    padding*: array[4, float32] ## Node padding (order: left -> top -> right -> bottom).
 
     computed*: array[4, float32]
       ## Computed absolute rectangle.
@@ -178,7 +179,7 @@ proc calcWrappedOverlayedSize(l: ptr Context, c: ptr NodeCache,
 
     let size = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
     needSize = max(needSize, size)
-  needSize + needSize2
+  needSize2 + needSize
 
 proc calcWrappedStackedSize(l: ptr Context, c: ptr NodeCache,
     dim: int32): float32 =
@@ -239,6 +240,7 @@ proc calcSize(l: ptr Context, dim: int32) =
     let
       c = l.caches[idx].addr
       n = c.node
+      padding = n.padding[dim] + n.padding[wDim]
 
     # Set the mutable rect output data to the starting input data.
     n.computed[dim] = n.margin[dim]
@@ -246,7 +248,7 @@ proc calcSize(l: ptr Context, dim: int32) =
     # If we have an explicit input size, just set our output size (which other
     # calcXxxSize and arrange procedures will use) to it.
     if n.size[dim] > 0:
-      n.computed[wDim] = n.size[dim]
+      n.computed[wDim] = max(n.size[dim], padding)
       continue
 
     let needSize =
@@ -272,7 +274,7 @@ proc calcSize(l: ptr Context, dim: int32) =
 
     # Set our output data size. Will be used by parent calcXxxSize procedures,
     # and by arrange procedures.
-    n.computed[wDim] = needSize
+    n.computed[wDim] = max(needSize, padding)
 
 proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
   ## Calculate line wrapping, stretching, and gap filling of all child nodes of the node on the main axis.
@@ -281,7 +283,8 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
 
   let n = c.node
 
-  let space = n.computed[wDim]
+  let offset = n.computed[dim] + n.padding[dim]
+  let space = n.computed[wDim] - (n.padding[dim] + n.padding[wDim])
 
   var arrangeRangeBegin = c.childOffset
   let arrangeRangeEnd = c.childOffset + c.childCount
@@ -351,7 +354,7 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
           extraMargin = spacer
 
     # distribute width among nodes
-    var x = n.computed[dim]
+    var x = offset
 
     # second pass: distribute and rescale
     for idx in arrangeRangeBegin ..< expandRangeEnd:
@@ -381,8 +384,8 @@ proc arrangeOverlay(l: ptr Context, c: ptr NodeCache, dim: int32) =
   let wDim = dim + 2
 
   let n = c.node
-  let offset = n.computed[dim]
-  let space = n.computed[wDim]
+  let offset = n.computed[dim] + n.padding[dim]
+  let space = n.computed[wDim] - (n.padding[dim] + n.padding[wDim])
 
   for idx in c.childOffset ..< c.childOffset + c.childCount:
     let
@@ -443,11 +446,11 @@ proc arrangeWrappedOverlaySqueezed(l: ptr Context, c: ptr NodeCache,
   let wDim = dim + 2
 
   let n = c.node
-  let space = n.computed[wDim]
+  let offset = n.computed[dim] + n.padding[dim]
+  let space = n.computed[wDim] - (n.padding[dim] + n.padding[wDim])
   let gap = n.gap[dim]
   let inheritedAxisAlign = toAxisAlign(n.layout, n.crossAxisAlign, dim)
 
-  var offset = n.computed[dim]
   var needSize = 0f
 
   var squeezedRangeBegin = c.childOffset
@@ -509,17 +512,20 @@ proc arrangeWrappedOverlaySqueezed(l: ptr Context, c: ptr NodeCache,
       spacer = spacer + space
       extraMargin = space
 
+  # distribute height among nodes
+  var y = offset
+
   for idx in c.childOffset ..< c.childOffset + c.childCount:
     let
       cc = l.caches[idx].addr
       child = cc.node
 
     if child.isBreak:
-      offset = offset + extraMargin
+      y = y + extraMargin
       l.arrangeOverlaySqueezedRange(
-        dim, inheritedAxisAlign, squeezedRangeBegin, idx, offset, needSize + filler
+        dim, inheritedAxisAlign, squeezedRangeBegin, idx, y, needSize + filler
       )
-      offset = offset + needSize
+      y = y + needSize
       extraMargin = spacer
 
       squeezedRangeBegin = idx
@@ -528,13 +534,13 @@ proc arrangeWrappedOverlaySqueezed(l: ptr Context, c: ptr NodeCache,
     let childSize = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
     needSize = max(needSize, childSize)
 
-  offset = offset + extraMargin
+  y = y + extraMargin
   l.arrangeOverlaySqueezedRange(
     dim,
     inheritedAxisAlign,
     squeezedRangeBegin,
     c.childOffset + c.childCount,
-    offset,
+    y,
     needSize + filler,
   )
 
@@ -571,8 +577,8 @@ proc arrange(l: ptr Context, c: ptr NodeCache, dim: int32) =
         cast[AxisAlign](ord(n.crossAxisAlign)),
         c.childOffset,
         c.childOffset + c.childCount,
-        n.computed[dim],
-        n.computed[wDim],
+        n.computed[dim] + n.padding[dim],
+        n.computed[wDim] - (n.padding[dim] + n.padding[wDim]),
       )
   else:
     # free layout model

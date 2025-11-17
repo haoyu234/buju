@@ -18,6 +18,7 @@ type
     size: array[2, float32]
     gap: array[2, float32]
     margin: array[4, float32]
+    padding: array[4, float32]
 
   NodeItem = object
     id: int32
@@ -52,6 +53,7 @@ proc dump(l: ptr Context, id, parentID: NodeID, nodes: var seq[NodeItem]) =
         size: n.size,
         gap: n.gap,
         margin: n.margin,
+        padding: n.padding,
       )
     ))
 
@@ -89,6 +91,7 @@ proc loadJson*(l: var Context, json: string): NodeID =
     l.setSize(n, attr.size)
     l.setGap(n, attr.gap)
     l.setMargin(n, attr.margin)
+    l.setPadding(n, attr.padding)
 
     if len(mapping) <= 0:
       result = n
