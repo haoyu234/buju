@@ -1,5 +1,3 @@
-import std/typetraits
-
 import ./buju/core
 
 export Context, NodeID, isNil, `$`
@@ -74,7 +72,7 @@ proc node*(l: var Context): NodeID {.inline, raises: [].} =
   ## Create a new node, which can just be thought of as a rectangle. Returns the
   ## id used to identify the node.
 
-  let offset = l.nodes.len
+  let offset = int32(l.nodes.len)
 
   l.nodes.setLen(offset + 1)
 
@@ -214,6 +212,22 @@ proc setMargin*(l: var Context, nodeID: NodeID, margin: array[4,
 
   if not n.isNil:
     n.margin = margin
+
+proc setPadding*(l: var Context, nodeID: NodeID, padding: array[4,
+    float32]) {.inline, raises: [].} =
+  ## Sets the padding of a node (space around the node).
+  ## Array components (order: left -> top -> right -> bottom):
+  ## - Index 0: Left padding.
+  ## - Index 1: Top padding.
+  ## - Index 2: Right padding.
+  ## - Index 3: Bottom padding.
+
+  let
+    l = l.getAddr
+    n = l.node(nodeID)
+
+  if not n.isNil:
+    n.padding = padding
 
 proc insertChild*(l: var Context, parentID, childID: NodeID) {.inline, raises: [].} =
   ## Inserts a node into another node, forming a parent-child relationship. 

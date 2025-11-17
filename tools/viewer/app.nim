@@ -20,6 +20,7 @@ type
     size: array[2, float32]
     gap: array[2, float32]
     margin: array[4, float32]
+    padding: array[4, float32]
 
   Mode = enum
     Buju
@@ -113,6 +114,7 @@ proc getAttr(id: NodeID): NodeAttr =
   result.size = n.size
   result.gap = n.gap
   result.margin = n.margin
+  result.padding = n.padding
 
 proc insertChild(parentID, childID: NodeID) =
   l.insertChild(parentID, childID)
@@ -150,6 +152,7 @@ proc updateAttr(n: NodeID, attr: NodeAttr) =
   l.setAlign(n, attr.align)
   l.setSize(n, attr.size)
   l.setMargin(n, attr.margin)
+  l.setPadding(n, attr.padding)
 
 proc toPixelSize(v: float32): kstring =
   kstring($(float32(scale) * v) & "px")
@@ -229,6 +232,10 @@ proc viewerH5(): VNode =
       (StyleAttr.marginTop, toPixelSize(attr.margin[1])),
       (StyleAttr.marginRight, toPixelSize(attr.margin[2])),
       (StyleAttr.marginBottom, toPixelSize(attr.margin[3])),
+      (StyleAttr.paddingLeft, toPixelSize(attr.padding[0])),
+      (StyleAttr.paddingTop, toPixelSize(attr.padding[1])),
+      (StyleAttr.paddingRight, toPixelSize(attr.padding[2])),
+      (StyleAttr.paddingBottom, toPixelSize(attr.padding[3])),
       (StyleAttr.position, kstring("relative")),
       (StyleAttr.flexShrink, kstring("0")),
       (StyleAttr.zIndex, kstring($zIndex)),
@@ -529,6 +536,7 @@ proc setSizeMargin(attr: NodeAttr): VNode =
         sizeProps = ["Width", "Height"]
         gapProps = ["ColumnGap", "RowGap"]
         marginProps = ["MarginLeft", "MarginTop", "MarginRight", "MarginBottom"]
+        paddingProps = ["PaddingLeft", "PaddingTop", "PaddingRight", "PaddingBottom"]
 
       for idx in 0 ..< len(sizeProps):
         let onChanged = capture idx:
@@ -556,6 +564,15 @@ proc setSizeMargin(attr: NodeAttr): VNode =
             l.setMargin(focusId, margin)
 
         numberEntry(marginProps[idx], attr.margin[idx], onChanged = onChanged)
+
+      for idx in 0 ..< len(paddingProps):
+        let onChanged = capture idx:
+          proc(v: float32) =
+            var padding = attr.padding
+            padding[idx] = v
+            l.setPadding(focusId, padding)
+
+        numberEntry(paddingProps[idx], attr.padding[idx], onChanged = onChanged)
 
 proc buttons(): VNode =
   proc toClass(n: NodeID): string =
