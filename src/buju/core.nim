@@ -107,6 +107,9 @@ type
       ## - Index 2: Computed width.
       ## - Index 3: Computed height.
 
+    when defined(bujuUserData):
+      userData*: RootRef
+
   NodeCache = object
     ## Cache for breadth-first traversal results (optimizes child node access).
 

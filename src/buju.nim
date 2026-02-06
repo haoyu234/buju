@@ -231,7 +231,7 @@ proc setPadding*(l: var Context, nodeID: NodeID, padding: array[4,
     n.padding = padding
 
 proc insertChild*(l: var Context, parentID, childID: NodeID) {.inline, raises: [].} =
-  ## Inserts a node into another node, forming a parent-child relationship. 
+  ## Inserts a node into another node, forming a parent-child relationship.
   ## A node can contain any number of child nodes. Items inserted into a parent are
   ## put at the end of the ordering, after any existing siblings.
   ## Note: If the child node already has a parent, call `removeChild` first to avoid conflicts.
@@ -254,7 +254,7 @@ proc insertChild*(l: var Context, parentID, childID: NodeID) {.inline, raises: [
       c.prevSibling = p.lastChild
     else:
       p.firstChild = childID
-    
+
     when defined(debug):
       c.parent = parentID
     p.lastChild = childID
@@ -338,3 +338,27 @@ proc computed*(l: Context, nodeID: NodeID): array[4, float32] {.inline,
 
   if not n.isNil:
     return n.computed
+
+when defined(bujuUserData):
+  proc setUserData*(l: var Context, nodeID: NodeID, userData: RootRef) {.inline,
+      raises: [].} =
+    ## Attaches custom user data to the specified layout node.
+    ## Only available when `bujuUserData` is defined.
+
+    let
+      l = l.getAddr
+      n = l.node(nodeID)
+
+    if not n.isNil:
+      n.userData = userData
+
+  proc userData*(l: var Context, nodeID: NodeID): RootRef {.inline, raises: [].} =
+    ## Retrieves custom user data bound to the specified layout node.
+    ## Paired with `setUserData`, only available when `bujuUserData` is defined.
+
+    let
+      l = l.getAddr
+      n = l.node(nodeID)
+
+    if not n.isNil:
+      result = n.userData
