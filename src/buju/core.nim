@@ -71,7 +71,7 @@ type
   Node* = object
     ## Layout node (conceptually a 2D rectangle with layout properties and hierarchy).
 
-    when defined(js):
+    when defined(js) or defined(debug):
       id*: NodeID
 
     when defined(debug):
@@ -121,6 +121,33 @@ type
     nodes*: seq[Node]
     caches: seq[NodeCache] ## Cache for breadth-first traversal results (speeds up child node indexing).
 
+proc combine(layout: Layout, wrap: Wrap): uint32 {.inline.} =
+  uint32(ord(layout) + (ord(wrap) shl 8))
+
+proc isSameAxis(layout: Layout, dim: int32): bool {.inline.} =
+  ord(layout) == (dim + 1)
+
+proc toAxisAlign(align: set[Align], dim: int32): AxisAlign {.inline.} =
+  var bits = uint32(0)
+  for a in [AlignLeft, AlignTop, AlignRight, AlignBottom]:
+    if a in align:
+      bits = bits or uint32(a)
+
+  cast[AxisAlign]((bits shr dim) and ord(AxisAlignStretch))
+
+proc toAxisAlign(layout: Layout, crossAxisAlign: CrossAxisAlign,
+    dim: int32): AxisAlign {.inline.} =
+  if isSameAxis(layout, dim):
+    AxisAlignMiddle
+  else:
+    cast[AxisAlign](crossAxisAlign)
+
+    # case crossAxisAlign
+    # of CrossAxisAlignMiddle: AxisAlignMiddle
+    # of CrossAxisAlignStart: AxisAlignStart
+    # of CrossAxisAlignEnd: AxisAlignEnd
+    # of CrossAxisAlignStretch: AxisAlignStretch
+
 proc `$`*(id: NodeID): string =
   if id != NIL:
     return fmt"NODE{int32(id)}"
@@ -129,10 +156,17 @@ proc `$`*(id: NodeID): string =
 proc isNil*(id: NodeID): bool {.inline.} =
   id == NIL
 
-proc node*(l: ptr Context, id: NodeID): ptr Node =
+proc node*(l: ptr Context, id: NodeID): ptr Node {.inline.} =
   let idx = int32(id) - 1
   if idx >= 0 and idx < len(l.nodes):
     return l.nodes[idx].addr
+
+proc updateResult(l: ptr Context, n: ptr Node, idx: int32, val: float32,
+    name: string) {.inline.} =
+  n.computed[idx] = val
+
+  when defined(debug) and defined(bujuDumpResult):
+    echo name, " set ", n.id, ".computed[", idx, "] to ", val
 
 iterator children*(l: ptr Context, n: ptr Node): ptr Node =
   var n = l.node(n.firstChild)
@@ -150,7 +184,7 @@ proc calcStackedSize(l: ptr Context, c: ptr NodeCache, dim: int32): float32 =
       cc = l.caches[idx].addr
       child = cc.node
 
-    let size = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
+    let size = child.margin[dim] + child.computed[wDim] + child.margin[wDim]
     needSize = needSize + size
   needSize
 
@@ -164,7 +198,7 @@ proc calcOverlayedSize(l: ptr Context, c: ptr NodeCache, dim: int32): float32 =
       cc = l.caches[idx].addr
       child = cc.node
 
-    let size = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
+    let size = child.margin[dim] + child.computed[wDim] + child.margin[wDim]
     needSize = max(size, needSize)
   needSize
 
@@ -184,7 +218,7 @@ proc calcWrappedOverlayedSize(l: ptr Context, c: ptr NodeCache,
       needSize2 = needSize2 + needSize
       needSize = 0
 
-    let size = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
+    let size = child.margin[dim] + child.computed[wDim] + child.margin[wDim]
     needSize = max(needSize, size)
   needSize2 + needSize
 
@@ -204,36 +238,9 @@ proc calcWrappedStackedSize(l: ptr Context, c: ptr NodeCache,
       needSize2 = max(needSize2, needSize)
       needSize = 0
 
-    let size = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
+    let size = child.margin[dim] + child.computed[wDim] + child.margin[wDim]
     needSize = needSize + size
   max(needSize2, needSize)
-
-template combine(layout: Layout, wrap: Wrap): uint32 =
-  uint32(ord(layout) + (ord(wrap) shl 8))
-
-template isSameAxis(layout: Layout, dim: int32): bool =
-  ord(layout) == (dim + 1)
-
-template toAxisAlign(align: set[Align], dim: int32): AxisAlign =
-  var bits = uint32(0)
-  for a in [AlignLeft, AlignTop, AlignRight, AlignBottom]:
-    if a in align:
-      bits = bits or uint32(a)
-
-  cast[AxisAlign]((bits shr dim) and ord(AxisAlignStretch))
-
-template toAxisAlign(layout: Layout, crossAxisAlign: CrossAxisAlign,
-    dim: int32): AxisAlign =
-  if isSameAxis(layout, dim):
-    AxisAlignMiddle
-  else:
-    cast[AxisAlign](crossAxisAlign)
-
-    # case crossAxisAlign
-    # of CrossAxisAlignMiddle: AxisAlignMiddle
-    # of CrossAxisAlignStart: AxisAlignStart
-    # of CrossAxisAlignEnd: AxisAlignEnd
-    # of CrossAxisAlignStretch: AxisAlignStretch
 
 proc calcSize(l: ptr Context, dim: int32) =
   let wDim = dim + 2
@@ -250,12 +257,12 @@ proc calcSize(l: ptr Context, dim: int32) =
       padding = n.padding[dim] + n.padding[wDim]
 
     # Set the mutable rect output data to the starting input data.
-    n.computed[dim] = n.margin[dim]
+    l.updateResult(n, dim, n.margin[dim], "calcSize")
 
     # If we have an explicit input size, just set our output size (which other
     # calcXxxSize and arrange procedures will use) to it.
     if n.size[dim] > 0:
-      n.computed[wDim] = max(n.size[dim], padding)
+      l.updateResult(n, wDim, max(n.size[dim], padding), "calcSize")
       continue
 
     let needSize =
@@ -281,7 +288,7 @@ proc calcSize(l: ptr Context, dim: int32) =
 
     # Set our output data size. Will be used by parent calcXxxSize procedures,
     # and by arrange procedures.
-    n.computed[wDim] = max(needSize, padding)
+    l.updateResult(n, wDim, max(needSize, padding), "calcSize")
 
 proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
   ## Calculate line wrapping, stretching, and gap filling of all child nodes of the node on the main axis.
@@ -312,7 +319,7 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
         cc = l.caches[idx].addr
         child = cc.node
 
-      var extend = used + child.computed[dim] + child.margin[wDim] +
+      var extend = used + child.margin[dim] + child.margin[wDim] +
           child.computed[wDim]
 
       if idx != arrangeRangeBegin:
@@ -369,18 +376,19 @@ proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
         cc = l.caches[idx].addr
         child = cc.node
 
-      x = x + child.computed[dim] + extraMargin
+      x = x + child.margin[dim] + extraMargin
       if idx != arrangeRangeBegin:
         x = x + n.gap[dim]
 
-      var w = child.computed[wDim]
+      var
+        w = child.computed[wDim]
 
       if toAxisAlign(child.align, dim) == AxisAlignStretch:
         # grow
         w = w + filler
 
-      child.computed[dim] = x
-      child.computed[wDim] = w
+      l.updateResult(child, dim, x, "arrangeStacked")
+      l.updateResult(child, wDim, w, "arrangeStacked")
 
       x = x + w + child.margin[wDim]
       extraMargin = spacer
@@ -399,22 +407,23 @@ proc arrangeOverlay(l: ptr Context, c: ptr NodeCache, dim: int32) =
       cc = l.caches[idx].addr
       child = cc.node
 
+    var
+      x = child.margin[dim]
+      w = child.computed[wDim]
+
     case toAxisAlign(child.align, dim)
     of AxisAlignStretch:
-      child.computed[wDim] = max(0f, space - child.computed[dim] - child.margin[wDim])
+      w = max(0f, space - child.margin[dim] -
+          child.margin[wDim])
     of AxisAlignEnd:
-      child.computed[dim] =
-        child.computed[dim] + space - child.computed[wDim] - child.margin[dim] -
-        child.margin[wDim]
+      x = x + space - w - child.margin[dim] - child.margin[wDim]
     of AxisAlignStart:
       discard
     of AxisAlignMiddle:
-      child.computed[dim] =
-        child.computed[dim] +
-        max(0f, (space - child.computed[wDim] - child.margin[dim] -
-            child.margin[wDim]) / 2)
+      x = x + max(0f, (space - w - child.margin[dim] - child.margin[wDim]) / 2)
 
-    child.computed[dim] = child.computed[dim] + offset
+    l.updateResult(child, dim, x + offset, "arrangeOverlay")
+    l.updateResult(child, wDim, w, "arrangeOverlay")
 
 proc arrangeOverlaySqueezedRange(l: ptr Context, dim: int32,
     inheritedAxisAlign: AxisAlign, squeezedRangeBegin, arrangeRangeEnd: int32,
@@ -426,25 +435,27 @@ proc arrangeOverlaySqueezedRange(l: ptr Context, dim: int32,
       cc = l.caches[idx].addr
       child = cc.node
 
-    let minSize = max(0f, space - child.computed[dim] - child.margin[wDim])
+      minSize = max(0f, space - child.margin[dim] - child.margin[wDim])
+
+    var
+      x = child.margin[dim]
+      w = child.computed[wDim]
 
     let align = toAxisAlign(child.align, dim)
     case cast[AxisAlign](ord(align) or ord(inheritedAxisAlign))
     of AxisAlignStretch:
-      child.computed[wDim] = minSize
+      w = minSize
     of AxisAlignStart:
-      child.computed[wDim] = min(child.computed[wDim], minSize)
+      w = min(w, minSize)
     of AxisAlignEnd:
-      child.computed[wDim] = min(child.computed[wDim], minSize)
-      child.computed[dim] = space - child.computed[wDim] - child.margin[wDim]
+      w = min(w, minSize)
+      x = space - w - child.margin[wDim]
     of AxisAlignMiddle:
-      child.computed[wDim] = min(child.computed[wDim], minSize)
-      child.computed[dim] =
-        child.computed[dim] +
-        max(0f, (space - child.computed[wDim] - child.margin[dim] -
-            child.margin[wDim]) / 2)
+      w = min(w, minSize)
+      x = x + max(0f, (space - w - child.margin[dim] - child.margin[wDim]) / 2)
 
-    child.computed[dim] = child.computed[dim] + offset
+    l.updateResult(child, dim, x + offset, "arrangeOverlaySqueezedRange")
+    l.updateResult(child, wDim, w, "arrangeOverlaySqueezedRange")
 
 proc arrangeWrappedOverlaySqueezed(l: ptr Context, c: ptr NodeCache,
     dim: int32) =
@@ -481,7 +492,7 @@ proc arrangeWrappedOverlaySqueezed(l: ptr Context, c: ptr NodeCache,
         used = used + needSize
         needSize = 0
 
-      let childSize = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
+      let childSize = child.margin[dim] + child.computed[wDim] + child.margin[wDim]
       needSize = max(needSize, childSize)
     used = used + needSize
 
@@ -538,7 +549,7 @@ proc arrangeWrappedOverlaySqueezed(l: ptr Context, c: ptr NodeCache,
       squeezedRangeBegin = idx
       needSize = 0
 
-    let childSize = child.computed[dim] + child.computed[wDim] + child.margin[wDim]
+    let childSize = child.margin[dim] + child.computed[wDim] + child.margin[wDim]
     needSize = max(needSize, childSize)
 
   y = y + extraMargin

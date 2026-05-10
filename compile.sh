@@ -3,6 +3,7 @@
 set -eu
 
 nim c -d:release -d:danger bench.nim
+# nim c -d:debug -d:bujuDumpResult bench.nim
 
 # nim c -d:release example.nim
 

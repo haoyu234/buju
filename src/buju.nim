@@ -77,7 +77,7 @@ proc node*(l: var Context): NodeID {.inline, raises: [].} =
   l.nodes.setLen(offset + 1)
 
   let id = cast[NodeID](l.nodes.len)
-  when defined(js):
+  when defined(js) or defined(debug):
     l.nodes[offset].id = id
 
   id
@@ -257,6 +257,7 @@ proc insertChild*(l: var Context, parentID, childID: NodeID) {.inline, raises: [
 
     when defined(debug):
       c.parent = parentID
+
     p.lastChild = childID
 
 proc removeChild*(l: var Context, parentID, childID: NodeID) {.inline, raises: [].} =
