@@ -696,6 +696,8 @@ proc createDom(): VNode =
               of Html5:
                 viewerH5()
 
+      echo "..."
+
 rootId = createNode(NodeAttr(layout: LayoutRow, size: [400, 400]))
 focusId = rootId
 

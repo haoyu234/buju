@@ -94,7 +94,10 @@ proc setLayout*(l: var Context, nodeID: NodeID, layout: Layout) {.inline,
     n = l.node(nodeID)
 
   if not n.isNil:
-    n.layout = layout
+    if n.layout != layout:
+      n.layout = layout
+      l.mark(n, DirtyContentPos)
+      l.mark(n, DirtyContentSize)
 
 proc setAlign*(l: var Context, nodeID: NodeID, align: set[Align]) {.inline,
     raises: [].} =
@@ -108,7 +111,9 @@ proc setAlign*(l: var Context, nodeID: NodeID, align: set[Align]) {.inline,
     n = l.node(nodeID)
 
   if not n.isNil:
-    n.align = align
+    if n.align != align:
+      n.align = align
+      l.mark(n, DirtySibling)
 
 proc setMainAxisAlign*(l: var Context, nodeID: NodeID,
     mainAxisAlign: MainAxisAlign) {.inline, raises: [].} =
@@ -124,7 +129,9 @@ proc setMainAxisAlign*(l: var Context, nodeID: NodeID,
     n = l.node(nodeID)
 
   if not n.isNil:
-    n.mainAxisAlign = mainAxisAlign
+    if n.mainAxisAlign != mainAxisAlign:
+      n.mainAxisAlign = mainAxisAlign
+      l.mark(n, DirtyContentPos)
 
 proc setCrossAxisAlign*(l: var Context, nodeID: NodeID,
     crossAxisAlign: CrossAxisAlign) {.inline, raises: [].} =
@@ -140,7 +147,13 @@ proc setCrossAxisAlign*(l: var Context, nodeID: NodeID,
     n = l.node(nodeID)
 
   if not n.isNil:
-    n.crossAxisAlign = crossAxisAlign
+    if n.crossAxisAlign != crossAxisAlign:
+      if n.crossAxisAlign == CrossAxisAlignStretch or
+          crossAxisAlign == CrossAxisAlignStretch:
+        l.mark(n, DirtyContentSize)
+
+      n.crossAxisAlign = crossAxisAlign
+      l.mark(n, DirtyContentPos)
 
 proc setCrossAxisLineAlign*(l: var Context, nodeID: NodeID,
     crossAxisLineAlign: CrossAxisLineAlign) {.inline, raises: [].} =
@@ -155,7 +168,13 @@ proc setCrossAxisLineAlign*(l: var Context, nodeID: NodeID,
     n = l.node(nodeID)
 
   if not n.isNil:
-    n.crossAxisLineAlign = crossAxisLineAlign
+    if n.crossAxisLineAlign != crossAxisLineAlign:
+      if n.crossAxisLineAlign == CrossAxisLineAlignStretch or
+          crossAxisLineAlign == CrossAxisLineAlignStretch:
+        l.mark(n, DirtyContentSize)
+
+      n.crossAxisLineAlign = crossAxisLineAlign
+      l.mark(n, DirtyContentPos)
 
 proc setWrap*(l: var Context, nodeID: NodeID, wrap: Wrap) {.inline, raises: [].} =
   ## Sets whether child nodes wrap when exceeding the node's main axis bounds.
@@ -168,7 +187,12 @@ proc setWrap*(l: var Context, nodeID: NodeID, wrap: Wrap) {.inline, raises: [].}
     n = l.node(nodeID)
 
   if not n.isNil:
-    n.wrap = wrap
+    if n.wrap != wrap:
+      if n.wrap == WrapWrap or wrap == WrapWrap:
+        l.mark(n, DirtyContentSize)
+
+      n.wrap = wrap
+      l.mark(n, DirtyContentPos)
 
 proc setSize*(l: var Context, nodeID: NodeID, size: array[2, float32]) {.inline,
     raises: [].} =
@@ -182,7 +206,9 @@ proc setSize*(l: var Context, nodeID: NodeID, size: array[2, float32]) {.inline,
     n = l.node(nodeID)
 
   if not n.isNil:
-    n.size = size
+    if n.size != size:
+      n.size = size
+      l.mark(n, DirtySize)
 
 proc setGap*(l: var Context, nodeID: NodeID, gap: array[2, float32]) {.inline,
     raises: [].} =
@@ -196,7 +222,9 @@ proc setGap*(l: var Context, nodeID: NodeID, gap: array[2, float32]) {.inline,
     n = l.node(nodeID)
 
   if not n.isNil:
-    n.gap = gap
+    if n.gap != gap:
+      n.gap = gap
+      l.mark(n, DirtyContentPos)
 
 proc setMargin*(l: var Context, nodeID: NodeID, margin: array[4,
     float32]) {.inline, raises: [].} =
@@ -212,7 +240,9 @@ proc setMargin*(l: var Context, nodeID: NodeID, margin: array[4,
     n = l.node(nodeID)
 
   if not n.isNil:
-    n.margin = margin
+    if n.margin != margin:
+      n.margin = margin
+      l.mark(n, DirtySize)
 
 proc setPadding*(l: var Context, nodeID: NodeID, padding: array[4,
     float32]) {.inline, raises: [].} =
@@ -228,7 +258,10 @@ proc setPadding*(l: var Context, nodeID: NodeID, padding: array[4,
     n = l.node(nodeID)
 
   if not n.isNil:
-    n.padding = padding
+    if n.padding != padding:
+      n.padding = padding
+      l.mark(n, DirtySize)
+      l.mark(n, DirtyContentPos)
 
 proc insertChild*(l: var Context, parentID, childID: NodeID) {.inline, raises: [].} =
   ## Inserts a node into another node, forming a parent-child relationship.
@@ -273,6 +306,11 @@ proc insertChild*(l: var Context, parentID, childID: NodeID) {.inline, raises: [
 
     p.lastChild = childID
 
+    l.mark(c, DirtyPos)
+    l.mark(c, DirtySize)
+    l.mark(p, DirtySize)
+    l.mark(p, DirtyContentSize)
+
 proc removeChild*(l: var Context, parentID, childID: NodeID) {.inline, raises: [].} =
   ## Removes a child node from its parent, breaking the parent-child relationship.
   ## Note: Resets the child's `prevSibling` and `nextSibling` to `NodeID.NIL`.
@@ -311,6 +349,11 @@ proc removeChild*(l: var Context, parentID, childID: NodeID) {.inline, raises: [
       c.parent = NIL
     c.prevSibling = NIL
     c.nextSibling = NIL
+
+    l.mark(c, DirtyPos)
+    l.mark(c, DirtySize)
+    l.mark(p, DirtySize)
+    l.mark(p, DirtyContentPos)
 
 proc compute*(l: var Context, nodeID: NodeID) {.inline, raises: [].} =
   ## Running the layout calculations from a specific node is useful if you want
