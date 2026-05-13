@@ -165,7 +165,7 @@ proc updateResult(l: ptr Context, n: ptr Node, idx: int32, val: float32,
     name: string) {.inline.} =
   n.computed[idx] = val
 
-  when defined(debug) and defined(bujuDumpResult):
+  when defined(debug) and defined(bujuDumpUpdateResult):
     echo name, " set ", n.id, ".computed[", idx, "] to ", val
 
 iterator children*(l: ptr Context, n: ptr Node): ptr Node =

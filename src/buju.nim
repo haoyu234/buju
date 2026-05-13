@@ -236,6 +236,8 @@ proc insertChild*(l: var Context, parentID, childID: NodeID) {.inline, raises: [
   ## put at the end of the ordering, after any existing siblings.
   ## Note: If the child node already has a parent, call `removeChild` first to avoid conflicts.
 
+  assert parentID != childID
+
   let
     l = l.getAddr
     p = l.node(parentID)
@@ -244,6 +246,17 @@ proc insertChild*(l: var Context, parentID, childID: NodeID) {.inline, raises: [
   if not p.isNil and not c.isNil:
     when defined(debug):
       assert c.parent.isNil
+
+      # Check for circular references
+      var
+        pp = parentID
+      while not pp.isNil:
+        let
+          ppn = l.node(pp)
+        assert not ppn.isNil
+        assert ppn.parent != childID
+        pp = ppn.parent
+
     assert c.prevSibling.isNil
     assert c.nextSibling.isNil
 
@@ -263,6 +276,8 @@ proc insertChild*(l: var Context, parentID, childID: NodeID) {.inline, raises: [
 proc removeChild*(l: var Context, parentID, childID: NodeID) {.inline, raises: [].} =
   ## Removes a child node from its parent, breaking the parent-child relationship.
   ## Note: Resets the child's `prevSibling` and `nextSibling` to `NodeID.NIL`.
+
+  assert parentID != childID
 
   let
     l = l.getAddr

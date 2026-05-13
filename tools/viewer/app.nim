@@ -32,7 +32,7 @@ var
   rootId = default(NodeID)
   focusId = default(NodeID)
   mapping = initTable[NodeID, NodeID]()
-  scale = 1
+  scale = 10
   defaultAttr = NodeAttr(
     size: [50, 50] #[ , margin: [5, 5, 5, 5] ]#
   )
@@ -155,7 +155,7 @@ proc updateAttr(n: NodeID, attr: NodeAttr) =
   l.setPadding(n, attr.padding)
 
 proc toPixelSize(v: float32): kstring =
-  kstring($(float32(scale) * v) & "px")
+  kstring($(float32(scale) / 10 * v) & "px")
 
 proc trim(s: string, T: typedesc): string =
   s.replace($T, "")
@@ -654,7 +654,7 @@ proc createDom(): VNode =
           span(class = "title"):
             text "Scale"
 
-          for val in [1, 2, 5, 10, 25]:
+          for val in [1, 5, 10, 20, 50, 100]:
             let onClick = capture val:
               proc() =
                 scale = val
@@ -662,7 +662,7 @@ proc createDom(): VNode =
             let class = if val == scale: "tool focus" else: "tool"
 
             button(class = kstring(class), onclick = onClick):
-              text "x" & $val
+              text "x" & $(val / 10)
 
         section(class = "options"):
           let attr = getAttr(focusId)

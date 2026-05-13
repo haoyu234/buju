@@ -68,7 +68,8 @@ proc dumpJson*(l: Context, id: NodeID): string =
   let l = l.getAddr
 
   var nodes = newSeqOfCap[NodeItem](l.nodes.len)
-  l.dump(id, NIL, nodes)
+  if id != NIL:
+    l.dump(id, NIL, nodes)
   pretty(%*nodes)
 
 proc loadJson*(l: var Context, json: string): NodeID =
