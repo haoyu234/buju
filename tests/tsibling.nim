@@ -22,6 +22,9 @@ test "insertChild":
   let node2 = l.node()
   let node3 = l.node()
 
+  expect AssertionDefect:
+    l.insertChild(root, root)
+
   check2(l.getAddr, root, NIL, NIL, NIL, NIL)
 
   l.insertChild(root, node1)
@@ -42,6 +45,25 @@ test "insertChild":
   check2(l.getAddr, node2, NIL, NIL, node1, node3)
   check2(l.getAddr, node3, NIL, NIL, node2, NIL)
 
+test "insertChild invalid param (debug build)":
+  when not defined(debug):
+    skip()
+  else:
+    var l: Context
+
+    let node1 = l.node()
+    let node2 = l.node()
+    let node3 = l.node()
+
+    l.insertChild(node1, node2)
+    l.insertChild(node2, node3)
+
+    expect AssertionDefect:
+      l.insertChild(node2, node1)
+
+    expect AssertionDefect:
+      l.insertChild(node3, node1)
+
 test "removeChild":
   var l: Context
 
@@ -50,6 +72,9 @@ test "removeChild":
   let node2 = l.node()
   let node3 = l.node()
   let node4 = l.node()
+
+  expect AssertionDefect:
+    l.removeChild(root, root)
 
   l.insertChild(root, node1)
   l.insertChild(root, node2)
@@ -91,3 +116,22 @@ test "removeChild":
   check2(l.getAddr, node2, NIL, NIL, NIL, NIL)
   check2(l.getAddr, node3, NIL, NIL, NIL, NIL)
   check2(l.getAddr, node4, NIL, NIL, NIL, NIL)
+
+test "removeChild invalid param (debug build)":
+  when not defined(debug):
+    skip()
+  else:
+    var l: Context
+
+    let node1 = l.node()
+    let node2 = l.node()
+    let node3 = l.node()
+
+    l.insertChild(node1, node2)
+    l.insertChild(node2, node3)
+
+    expect AssertionDefect:
+      l.removeChild(node1, node3)
+
+    expect AssertionDefect:
+      l.removeChild(node2, node1)
