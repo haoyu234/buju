@@ -288,7 +288,7 @@ proc calcSize(l: ptr Context, dim: int32) =
 
     # Set our output data size. Will be used by parent calcXxxSize procedures,
     # and by arrange procedures.
-    l.updateResult(n, wDim, max(needSize, padding), "calcSize")
+    l.updateResult(n, wDim, needSize + padding, "calcSize")
 
 proc arrangeStacked(l: ptr Context, c: ptr NodeCache, dim: int32, wrap: bool) =
   ## Calculate line wrapping, stretching, and gap filling of all child nodes of the node on the main axis.
@@ -446,12 +446,12 @@ proc arrangeOverlaySqueezedRange(l: ptr Context, dim: int32,
     of AxisAlignStretch:
       w = minSize
     of AxisAlignStart:
-      w = min(w, minSize)
+      w = max(min(w, minSize), child.size[dim])
     of AxisAlignEnd:
-      w = min(w, minSize)
+      w = max(min(w, minSize), child.size[dim])
       x = space - w - child.margin[wDim]
     of AxisAlignMiddle:
-      w = min(w, minSize)
+      w = max(min(w, minSize), child.size[dim])
       x = x + max(0f, (space - w - child.margin[dim] - child.margin[wDim]) / 2)
 
     l.updateResult(child, dim, x + offset, "arrangeOverlaySqueezedRange")
