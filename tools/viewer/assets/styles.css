@@ -47,42 +47,75 @@ td {
   border-bottom: 1px solid rgb(155, 155, 155);
 }
 
-.group {
-  margin-top: 8px;
-}
-
-.tools {
-  margin: 6px 0px;
-}
-
-.focus.tool {
-  box-shadow:
-    0px 0px 10px #008000;
-}
-
-.tool {
-  margin-right: 6px;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-  padding: 0px 0.5em;
-  box-sizing: border-box;
-}
-
 .app {
-  padding: 0 1em;
   display: flex;
   flex-direction: row;
+  position: relative;
+  font-size: 16px;
+  font-family: Consolas, "Bitstream Vera Sans Mono", "Andale Mono", Monaco, "DejaVu Sans Mono", "Lucida Console", monospace;
 }
 
 .editor {
   width: 24em;
+  z-index: 2;
+  position: fixed;
 }
 
 .viewer {
   display: flex;
   position: relative;
   box-sizing: border-box;
-  padding: 1em 2em;
+  padding: 4em;
+  z-index: 1;
+}
+
+.viewers {
+  display: flex;
+  margin-left: 18em;
+}
+
+.toolbar {
+  z-index: 2;
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 24em;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.tool {
+  margin: 4px;
+  padding: 0px 0.5em;
+  box-sizing: border-box;
+}
+
+.focus {
+  box-shadow:
+    0px 0px 10px #008000;
+}
+
+.tools {
+  display: flex;
+  justify-content: flex-end;
+  max-width: 24em;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+  pointer-events: none;
+}
+
+.tools > * {
+  pointer-events: auto;
+}
+
+.button {
+  margin-right: 4px;
+}
+
+.buttons {
+  position: fixed;
+  max-width: 24em;
+  right: 0;
 }

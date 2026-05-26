@@ -216,6 +216,7 @@ proc viewerBuju(): VNode =
           class = kstring(toClass(n)),
           style = toStyle(xywh, int32(n)),
           onClick = onClick,
+          name = kstring($n),
         ):
           tdiv(class = "label"):
             text $cast[int32](n)
@@ -364,6 +365,7 @@ proc viewerH5(): VNode =
         class = kstring(toClass(n)),
         style = toStyle(attr, parentAttr, xywh, int32(n)),
         onClick = onClick,
+        name = kstring($n),
       ):
         tdiv(class = "label"):
           text $cast[int32](n)
@@ -408,7 +410,8 @@ proc radioGroup[T](
 
         li:
           label:
-            input(`type` = "radio", name = name, checked = v == val, onClick = onClick)
+            input(`type` = "radio", name = name, checked = v == val,
+                onClick = onClick)
             text trim($v, T)
 
 proc checkboxGroup[T](
@@ -424,7 +427,8 @@ proc checkboxGroup[T](
         li:
           label:
             input(
-              `type` = "checkbox", name = name, checked = v in val, onClick = onClick
+              `type` = "checkbox", name = name, checked = v in val,
+              onClick = onClick
             )
             text trim($v, T)
 
@@ -438,10 +442,10 @@ proc setLayout(attr: NodeAttr): VNode =
         "Layout",
         attr.layout,
         collect do:
-          for layout in Layout:
-            layout,
+        for layout in Layout:
+          layout,
         proc(layout: Layout) =
-          l.setLayout(focusId, layout),
+        l.setLayout(focusId, layout),
       )
 
       label:
@@ -485,7 +489,8 @@ proc setMainAxisAlign(attr: NodeAttr): VNode =
         attr.mainAxisAlign,
         [
           MainAxisAlignMiddle, MainAxisAlignStart, MainAxisAlignEnd,
-          MainAxisAlignSpaceBetween, MainAxisAlignSpaceAround, MainAxisAlignSpaceEvenly,
+          MainAxisAlignSpaceBetween, MainAxisAlignSpaceAround,
+          MainAxisAlignSpaceEvenly,
         ],
         proc(mainAxisAlign: MainAxisAlign) =
           l.setMainAxisAlign(focusId, mainAxisAlign),
@@ -518,7 +523,8 @@ proc setCrossAxisLineAlign(attr: NodeAttr): VNode =
         "CrossAxisLineAlign",
         attr.crossAxisLineAlign,
         [
-          CrossAxisLineAlignMiddle, CrossAxisLineAlignStart, CrossAxisLineAlignEnd,
+          CrossAxisLineAlignMiddle, CrossAxisLineAlignStart,
+          CrossAxisLineAlignEnd,
           CrossAxisLineAlignStretch, CrossAxisLineAlignSpaceBetween,
           CrossAxisLineAlignSpaceAround, CrossAxisLineAlignSpaceEvenly,
         ],
@@ -576,10 +582,10 @@ proc setSizeMargin(attr: NodeAttr): VNode =
 
 proc buttons(): VNode =
   proc toClass(n: NodeID): string =
-    if n == focusId: "tool focus" else: "tool"
+    if n == focusId: "button focus" else: "button"
 
   buildHtml:
-    section(class = "group"):
+    section(class = "buttons"):
       for n in nodes(rootId):
         let onClick = capture n:
           proc() =
@@ -594,76 +600,9 @@ proc createDom(): VNode =
   result = buildHtml(tdiv):
     section(class = "app"):
       section(
-        class = "editor", style = style([(StyleAttr.display, kstring("inline-block"))])
+        class = "editor", style = style([(StyleAttr.display, kstring(
+            "inline-block"))])
       ):
-        section(class = "tools"):
-          button(class = "tool", onclick = importJson):
-            text "importJson"
-          button(class = "tool", onclick = exportJson):
-            text "exportJson"
-
-          section(
-            class = "tools",
-            style = style(
-              [
-                (StyleAttr.display, kstring("inline-block")),
-                (StyleAttr.marginLeft, kstring("2em")),
-              ]
-            ),
-          ):
-            button(class = "tool"):
-              proc onclick() =
-                insertChild(focusId, createNode(defaultAttr))
-
-              text "+"
-
-            button(class = "tool"):
-              proc onclick() =
-                removeNode(focusId)
-
-              text "-"
-
-            button(class = "tool"):
-              proc onclick() =
-                removeNextSiblings(focusId)
-
-              text ">"
-
-        section(class = "tools"):
-          span(class = "title"):
-            text "Mode"
-
-          for val in [Buju, Html5]:
-            let onClick = capture val:
-              proc() =
-                if val in modes:
-                  modes.excl(val)
-                else:
-                  modes.incl(val)
-
-            label:
-              input(
-                `type` = "checkbox",
-                name = kstring($val),
-                checked = val in modes,
-                onclick = onClick,
-              )
-              text ($val).toLowerAscii
-
-        section(class = "tools"):
-          span(class = "title"):
-            text "Scale"
-
-          for val in [1, 5, 10, 20, 50, 100]:
-            let onClick = capture val:
-              proc() =
-                scale = val
-
-            let class = if val == scale: "tool focus" else: "tool"
-
-            button(class = kstring(class), onclick = onClick):
-              text "x" & $(val / 10)
-
         section(class = "options"):
           let attr = getAttr(focusId)
           thead:
@@ -690,17 +629,72 @@ proc createDom(): VNode =
               td(colspan = "2"):
                 setCrossAxisLineAlign(attr)
 
-        section(class = "buttons"):
-          buttons()
+      section(class = "toolbar"):
+        section(class = "tools"):
+          button(class = "tool", onclick = importJson):
+            text "importJson"
+          button(class = "tool", onclick = exportJson):
+            text "exportJson"
 
-      for val in [Buju, Html5]:
-        if val in modes:
-          section(class = "viewer"):
-            case val
-            of Buju:
-              viewerBuju()
-            of Html5:
-              viewerH5()
+        section(class = "tools"):
+          button(class = "tool", title = "Add child"):
+            proc onclick() =
+              insertChild(focusId, createNode(defaultAttr))
+
+            text "+"
+
+          button(class = "tool", title = "Remove child"):
+            proc onclick() =
+              removeNode(focusId)
+
+            text "-"
+
+          button(class = "tool", title = "Remove next siblings"):
+            proc onclick() =
+              removeNextSiblings(focusId)
+
+            text ">"
+
+        section(class = "tools"):
+          for val in [Buju, Html5]:
+            let onClick = capture val:
+              proc() =
+                if val in modes:
+                  modes.excl(val)
+                else:
+                  modes.incl(val)
+
+            label:
+              input(
+                `type` = "checkbox",
+                name = kstring($val),
+                checked = val in modes,
+                onclick = onClick,
+              )
+              text ($val).toLowerAscii
+
+        section(class = "tools"):
+          for val in [1, 5, 10, 20, 50, 100]:
+            let onClick = capture val:
+              proc() =
+                scale = val
+
+            let class = if val == scale: "tool focus" else: "tool"
+
+            button(class = kstring(class), onclick = onClick):
+              text "x" & $(val / 10)
+
+        buttons()
+
+      section(class = "viewers"):
+        for val in [Buju, Html5]:
+          if val in modes:
+            section(class = "viewer"):
+              case val
+              of Buju:
+                viewerBuju()
+              of Html5:
+                viewerH5()
 
 rootId = createNode(NodeAttr(layout: LayoutRow, size: [400, 400]))
 focusId = rootId
