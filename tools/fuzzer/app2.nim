@@ -12,13 +12,13 @@ type
     Break
     Exit
 
-proc main =
-  let
-    c = connect("localhost", 2026)
-
+proc handleClient(c: TcpClient) =
   while true:
     let
       data = c.next()
+
+    if c.isClosed:
+      return
 
     if data.len <= 0:
       continue
@@ -64,5 +64,18 @@ proc main =
           return
         else:
           return
+
+proc serve(port: uint16) =
+  echo "listen: ", port
+
+  for c in listen(port):
+    echo "new client"
+
+    handleClient(c)
+
+    echo ""
+
+proc main =
+  serve(2026)
 
 main()

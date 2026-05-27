@@ -1,5 +1,5 @@
-import std/net
-import std/oserrors
+import std/asyncnet
+import std/asyncdispatch
 
 when defined(windows):
   import std/winlean
@@ -8,31 +8,31 @@ else:
 
 type
   TcpClient* = ref object
-    tcp: Socket
+    tcp: AsyncSocket
     isClosed*: bool
 
 const
-  safeDisconn = {SocketFlag.SafeDisconn}
+  isBuffered = true
 
-proc listen*(port: uint16): TcpClient =
+iterator listen*(port: uint16): TcpClient =
   let
-    s = newSocket(buffered = false)
+    s = newAsyncSocket(buffered = isBuffered)
   s.setSockOpt(OptReuseAddr, true)
   s.bindAddr(Port(port))
   s.listen()
 
-  var c: Socket
-  s.accept(c)
-  s.close()
+  defer:
+    s.close()
 
-  TcpClient(
-    tcp: c
-  )
+  while true:
+    yield TcpClient(
+      tcp: waitFor s.accept()
+    )
 
 proc connect*(host: string, port: uint16): TcpClient =
   let
-    c = newSocket(buffered = false)
-  c.connect(host, Port(port))
+    c = newAsyncSocket(buffered = isBuffered)
+  waitFor c.connect(host, Port(port))
 
   TcpClient(
     tcp: c
@@ -48,56 +48,25 @@ proc int32ToBytes(val: int32, buffer: var array[4, byte]) =
   buffer[2] = byte(0xFF and (val shr 8))
   buffer[3] = byte(0xFF and (val shr 0))
 
-proc isDisconnectionError(lastErr: OSErrorCode): bool =
-  if safeDisconn.isDisconnectionError(lastErr):
-    result = true
-    return
-
-  when defined(windows):
-    if lastErr.int32 == WSAEWOULDBLOCK:
-      return
-    else: raiseOSError(lastErr)
-  else:
-    if lastErr.int32 == EAGAIN or lastErr.int32 == EWOULDBLOCK:
-      return
-
 proc readExact(c: TcpClient, size: int32): seq[byte] =
   var
     buffer: array[4096, byte]
 
   while result.len < size:
     let
-      n = c.tcp.recv(buffer[0].addr, min(size - result.len, buffer.len))
-    if n < 0:
-      let
-        lastErr = c.tcp.getSocketError()
-      if isDisconnectionError(lastErr):
-        c.isClosed = true
-        result.setLen(0)
-        return
-      continue
+      n = waitFor c.tcp.recvInto(buffer[0].addr, min(size - result.len, buffer.len))
+    if n <= 0:
+      c.isClosed = true
+      result.setLen(0)
+      break
 
-    if n > 0:
-      result.add(buffer.toOpenArray(0, n - 1))
+    result.add(buffer.toOpenArray(0, n - 1))
 
 proc writeExact(c: TcpClient, data: openArray[byte]): bool =
-  var
-    written = 0
-  while written < data.len:
-    let
-      n = c.tcp.send(data[written].addr, data.len - written)
-    if n < 0:
-      let
-        lastErr = c.tcp.getSocketError()
-      if isDisconnectionError(lastErr):
-        c.isClosed = true
-        result = false
-        return
-      continue
+  if c.isClosed or data.len <= 0:
+    return
 
-    if n > 0:
-      inc written, n
-
+  waitFor c.tcp.send(data[0].addr, data.len)
   result = true
   return
 

@@ -16,13 +16,8 @@ type
     Break
     Exit
 
-echo "listen: ", 2026
-
 var
-  c = listen(2026)
-
-proc initialize(): cint {.exportc: "LLVMFuzzerInitialize".} =
-  {.emit: "N_CDECL(void, NimMain)(void); NimMain();".}
+  c: TcpClient
 
 proc fuzzBody(data: openArray[byte]) =
   var
@@ -31,6 +26,12 @@ proc fuzzBody(data: openArray[byte]) =
     lastSuccessJson: string
 
   try:
+    if c.isNil:
+      c = connect("localhost", 2026)
+
+    if c.isClosed:
+      raise newException(IOError, "client closed")
+
     c.send(data)
 
     let
@@ -88,16 +89,19 @@ proc fuzzBody(data: openArray[byte]) =
     hasError = true
     echo e.msg
     echo getStackTrace(e)
+    raise
 
-  if hasError:
-    writeFile("buju.json", lastSuccessJson)
+  finally:
+    if hasError:
+      writeFile("buju.json", lastSuccessJson)
 
-    when defined(linux):
-      discard kill(getpid(), SIGSEGV)
+proc LLVMFuzzerInitialize(): cint {.exportc: "LLVMFuzzerInitialize".} =
+  {.emit: "N_CDECL(void, NimMain)(void); NimMain();".}
 
-proc fuzzBody(data: ptr UncheckedArray[byte], len: int): cint {.
+proc LLVMFuzzerTestOneInput(data: ptr UncheckedArray[byte], len: int): cint {.
     exportc: "LLVMFuzzerTestOneInput", raises: [].} =
   try:
     fuzzBody(data.toOpenArray(0, len - 1))
   except Exception:
-    discard
+    when defined(linux):
+      discard kill(getpid(), SIGSEGV)
