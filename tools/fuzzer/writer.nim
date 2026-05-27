@@ -11,17 +11,26 @@ proc index[T: enum](data: T): int32 =
 
     inc result, 1
 
-proc next*[T](l: var Writer, data: T) =
+proc next*[T](w: var Writer, data: T) =
   when T is enum:
     var
       temp = uint64(index(data))
 
-  elif T is SomeOrdinal:
+  elif T is SomeInteger:
     var
       temp = uint64(data)
 
     when sizeof(T) != sizeof(uint64):
       temp = temp and ((uint64(1) shl (sizeof(T) * 8)) - 1)
+
+  elif T is SomeFloat:
+    var
+      temp = uint64(0)
+    when sizeof(T) == sizeof(uint32):
+      temp = uint64(cast[uint32](data))
+
+    elif sizeof(T) == sizeof(uint64):
+      temp = cast[uint64](data)
 
   else:
     assert false, "unreachable"
@@ -35,4 +44,4 @@ proc next*[T](l: var Writer, data: T) =
     buffer[idx] = byte(0xFF and temp)
     temp = temp shr 8
 
-  l.buffer.add(buffer)
+  w.buffer.add(buffer)

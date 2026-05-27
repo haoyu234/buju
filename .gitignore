@@ -5,4 +5,5 @@ htmldocs/
 crash/
 fuzz_corpus/
 
+tools/*.exe
 tools/viewer/app.js

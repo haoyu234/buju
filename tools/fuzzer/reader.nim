@@ -1,10 +1,16 @@
 import std/enumutils
+import std/math
 
 type
   Reader* = object
     pos: int32
     len*: int32
     buffer*: ptr UncheckedArray[byte]
+
+proc reader*(data: openArray[byte]): Reader =
+  if data.len > 0:
+    result.buffer = cast[ptr UncheckedArray[byte]](data[0].addr)
+  result.len = int32(data.len)
 
 proc index[T: enum](data: T): int32 =
   for val in items(T):
@@ -41,13 +47,25 @@ proc next*[T](r: var Reader, _: typedesc[T], min: T = low(T), max: T = high(T)):
 
       dec idx, 1
 
-  elif T is SomeOrdinal:
-    let
-      n = uint64(max) - uint64(min)
-
+  elif T is SomeInteger:
     result = cast[T](temp)
+
     if result < min or result > max:
+      let
+        n = uint64(max) - uint64(min)
+
       result = cast[T](uint64(min) + (temp mod n))
 
+  elif T is SomeFloat:
+    when sizeof(T) == sizeof(uint32):
+      result = cast[T](uint32(temp))
+
+    elif sizeof(T) == sizeof(uint64):
+      result = cast[T](temp)
+
+    if result < min or result > max:
+      let
+        n = max - min
+      result = min + floorMod(result - min, n)
   else:
     assert false, "unreachable"

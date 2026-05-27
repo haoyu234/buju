@@ -1,9 +1,8 @@
 import buju
 import buju/core
 
+import ./nodes
 import ./reader
-import ./utils
-import ./writer
 
 const
   MAX_NODES_COUNT = high(int32) - 1
@@ -41,6 +40,105 @@ type
     gap*: array[2, float32]                 # SET_GAP
     margin*: array[4, float32]              # SET_MARGIN
     padding*: array[4, float32]             # SET_PADDING
+
+proc s(args: varargs[string, `$`]): string {.inline.} =
+  for a in args:
+    result.add(a)
+
+proc `$`*(param: ActionParam): string =
+  case param.action:
+  of NEW:
+    "NEW"
+
+  of SET_LAYOUT:
+    let
+      n = cast[NodeID](param.nodeId1)
+      layout = param.layout
+
+    s "SET_LAYOUT: ", n, " ", layout
+
+  of SET_ALIGN:
+    let
+      n = cast[NodeID](param.nodeId1)
+      aligns = param.aligns
+
+    s "SET_ALIGN: ", n, " ", aligns
+
+  of SET_MAIN_AXIS_ALIGN:
+    let
+      n = cast[NodeID](param.nodeId1)
+      mainAxisAlign = param.mainAxisAlign
+
+    s "SET_MAIN_AXIS_ALIGN: ", n, " ", mainAxisAlign
+
+  of SET_CROSS_AXIS_ALIGN:
+    let
+      n = cast[NodeID](param.nodeId1)
+      crossAxisAlign = param.crossAxisAlign
+
+    s "SET_CROSS_AXIS_ALIGN: ", n, " ", crossAxisAlign
+
+  of SET_CROSS_AXIS_LINE_ALIGN:
+    let
+      n = cast[NodeID](param.nodeId1)
+      crossAxisLineAlign = param.crossAxisLineAlign
+
+    s "SET_CROSS_AXIS_LINE_ALIGN: ", n, " ", crossAxisLineAlign
+
+  of SET_WRAP:
+    let
+      n = cast[NodeID](param.nodeId1)
+      wrap = param.wrap
+
+    s "SET_WRAP: ", n, " ", wrap
+
+  of SET_SIZE:
+    let
+      n = cast[NodeID](param.nodeId1)
+      size = param.size
+
+    s "SET_SIZE: ", n, " ", size
+
+  of SET_GAP:
+    let
+      n = cast[NodeID](param.nodeId1)
+      gap = param.gap
+
+    s "SET_GAP: ", n, " ", gap
+
+  of SET_MARGIN:
+    let
+      n = cast[NodeID](param.nodeId1)
+      margin = param.margin
+
+    s "SET_MARGIN: ", n, " ", margin
+
+  of SET_PADDING:
+    let
+      n = cast[NodeID](param.nodeId1)
+      padding = param.padding
+
+    s "SET_PADDING: ", n, " ", padding
+
+  of INSERT_CHILD:
+    let
+      n1 = cast[NodeID](param.nodeId1)
+      n2 = cast[NodeID](param.nodeId2)
+
+    s "INSERT_CHILD: ", n1, " ", n2
+
+  of REMOVE_CHILD:
+    let
+      n1 = cast[NodeID](param.nodeId1)
+      n2 = cast[NodeID](param.nodeId2)
+
+    s "REMOVE_CHILD: ", n1, " ", n2
+
+  of COMPUTE:
+    let
+      n = cast[NodeID](param.nodeId1)
+
+    s "COMPUTE: ", n
 
 iterator actions*(data: openArray[byte]): ActionParam =
   var
@@ -148,7 +246,7 @@ proc node1*(ctx: Context, param: ActionParam): NodeID =
 
   let
     idx = param.nodeId1 mod ctx.nodes.len
-    n = cast[NodeID](idx)
+    n = cast[NodeID](idx + 1)
   n
 
 proc node2*(ctx: Context, param: ActionParam): NodeID =
@@ -157,7 +255,7 @@ proc node2*(ctx: Context, param: ActionParam): NodeID =
 
   let
     idx = param.nodeId2 mod ctx.nodes.len
-    n = cast[NodeID](idx)
+    n = cast[NodeID](idx + 1)
   n
 
 proc doAction*(ctx: var Context, param: ActionParam) =
@@ -280,36 +378,44 @@ proc doAction*(ctx: var Context, param: ActionParam) =
       n1 = ctx.node1(param)
       n2 = ctx.node2(param)
 
+    var
+      isSkip = false
+
     if n1 == n2 or ctx.hasChild(n2, n1):
-      return
+      isSkip = true
 
     let
       pn = ctx.getParent(n2)
     if not pn.isNil:
-      return
+      isSkip = true
 
     when defined(bujuDumpAction):
-      echo "INSERT_CHILD: ", n1, " ", n2
+      echo "INSERT_CHILD: ", n1, " ", n2, " isSkip: ", isSkip
 
-    ctx.insertChild(n1, n2)
+    if not isSkip:
+      ctx.insertChild(n1, n2)
 
   of REMOVE_CHILD:
     let
       n1 = ctx.node1(param)
       n2 = ctx.node2(param)
 
+    var
+      isSkip = false
+
     if n1 == n2 or not ctx.hasDirectChild(n1, n2):
-      return
+      isSkip = true
 
     let
       pn = ctx.getParent(n2)
     if pn.isNil:
-      return
+      isSkip = true
 
     when defined(bujuDumpAction):
-      echo "REMOVE_CHILD: ", n1, " ", n2
+      echo "REMOVE_CHILD: ", n1, " ", n2, " isSkip: ", isSkip
 
-    ctx.removeChild(n1, n2)
+    if not isSkip:
+      ctx.removeChild(n1, n2)
 
   of COMPUTE:
     let
@@ -320,77 +426,3 @@ proc doAction*(ctx: var Context, param: ActionParam) =
 
     ctx.compute(n)
 
-proc dumpBinary*(actions: openArray[ActionParam]): seq[byte] =
-  var
-    writer: Writer
-
-  for param in actions:
-    writer.next(param.action)
-
-    case param.action:
-    of NEW:
-      discard
-
-    of SET_LAYOUT:
-      writer.next(param.nodeId1)
-      writer.next(param.layout)
-
-    of SET_ALIGN:
-      writer.next(param.nodeId1)
-      writer.next(int32(param.aligns.len))
-
-      for align in param.aligns:
-        writer.next(align)
-
-    of SET_MAIN_AXIS_ALIGN:
-      writer.next(param.nodeId1)
-      writer.next(param.mainAxisAlign)
-
-    of SET_CROSS_AXIS_ALIGN:
-      writer.next(param.nodeId1)
-      writer.next(param.crossAxisAlign)
-
-    of SET_CROSS_AXIS_LINE_ALIGN:
-      writer.next(param.nodeId1)
-      writer.next(param.crossAxisLineAlign)
-
-    of SET_WRAP:
-      writer.next(param.nodeId1)
-      writer.next(param.wrap)
-
-    of SET_SIZE:
-      writer.next(param.nodeId1)
-      writer.next(int32(param.size[0]))
-      writer.next(int32(param.size[1]))
-
-    of SET_GAP:
-      writer.next(param.nodeId1)
-      writer.next(int32(param.gap[0]))
-      writer.next(int32(param.gap[1]))
-
-    of SET_MARGIN:
-      writer.next(param.nodeId1)
-      writer.next(int32(param.margin[0]))
-      writer.next(int32(param.margin[1]))
-      writer.next(int32(param.margin[2]))
-      writer.next(int32(param.margin[3]))
-
-    of SET_PADDING:
-      writer.next(param.nodeId1)
-      writer.next(int32(param.padding[0]))
-      writer.next(int32(param.padding[1]))
-      writer.next(int32(param.padding[2]))
-      writer.next(int32(param.padding[3]))
-
-    of INSERT_CHILD:
-      writer.next(param.nodeId1)
-      writer.next(param.nodeId2)
-
-    of REMOVE_CHILD:
-      writer.next(param.nodeId1)
-      writer.next(param.nodeId2)
-
-    of COMPUTE:
-      writer.next(param.nodeId1)
-
-  writer.buffer
