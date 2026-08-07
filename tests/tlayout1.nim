@@ -1,7 +1,9 @@
+import buju
 import unittest
 
-import buju
 import ./utils
+
+# Golden geometry for basic flex fill, margins, align, nesting and large child counts. The assertions are the spec.
 
 test2 "simple_fill":
   let root = l.node()
@@ -12,18 +14,8 @@ test2 "simple_fill":
   l.insertChild(root, child)
   l.compute(root)
 
-  let root_r = l.computed(root)
-  let child_r = l.computed(child)
-
-  check root_r[0] == 0
-  check root_r[1] == 0
-  check root_r[2] == 30
-  check root_r[3] == 40
-
-  check child_r[0] == 0
-  check child_r[1] == 0
-  check child_r[2] == 30
-  check child_r[3] == 40
+  check l.computed(root) == [float32(0), 0, 30, 40]
+  check l.computed(child) == [float32(0), 0, 30, 40]
 
 test2 "multiple_uninserted":
   let root = l.node()
@@ -131,6 +123,7 @@ test2 "simple_margins_1":
   l.insertChild(root, child3)
   l.compute(root)
 
+  check l.computed(root) == [float32(0), 0, 100, 90]
   check l.computed(child1) == [float32(3), 5, 90, (5 + 10)]
   check l.computed(child2) == [float32(0), 30, 100, 30]
   check l.computed(child3) == [float32(0), 60, 100, 30]
@@ -213,6 +206,7 @@ test2 "nested_boxes_1":
   for i in 0 ..< 5:
     l.compute(root)
 
+    check l.computed(root) == [float32(0), 0, 70, 60]
     check l.computed(mainChild) == [float32(10), 10, 50, 40]
 
     check l.computed(rows[0]) == [float32(10), 10, 50, 10]
@@ -297,6 +291,7 @@ test2 "child_align_1":
 
   l.compute(root)
 
+  check l.computed(root) == [float32(0), 0, 50, 50]
   check l.computed(child1) == [float32(0), 0, 10, 10]
   check l.computed(child2) == [float32(40), 0, 10, 10]
   check l.computed(child3) == [float32(20), 0, 10, 10]
@@ -329,6 +324,7 @@ test2 "child_align_2":
 
   l.compute(root)
 
+  check l.computed(root) == [float32(0), 0, 50, 50]
   check l.computed(child1) == [float32(0), 0, 50, 10]
   check l.computed(child2) == [float32(0), 20, 50, 10]
   check l.computed(child3) == [float32(0), 40, 50, 10]
@@ -336,3 +332,35 @@ test2 "child_align_2":
   check l.computed(child4) == [float32(0), 0, 10, 50]
   check l.computed(child5) == [float32(40), 0, 10, 50]
   check l.computed(child6) == [float32(20), 0, 10, 50]
+
+test2 "anchor_right_margin1":
+  let root = l.node()
+  l.setSize(root, [float32(100), 100])
+
+  let child = l.node()
+  l.setSize(child, [float32(50), 50])
+  l.setMargin(child, [float32(5), 5, 0, 0])
+  l.setAlign(child, {AlignBottom, AlignRight})
+
+  l.insertChild(root, child)
+
+  l.compute(root)
+
+  check l.computed(root) == [float32(0), 0, 100, 100]
+  check l.computed(child) == [float32(50), 50, 50, 50]
+
+test2 "anchor_right_margin2":
+  let root = l.node()
+  l.setSize(root, [float32(100), 100])
+
+  let child = l.node()
+  l.setSize(child, [float32(50), 50])
+  l.setMargin(child, [float32(5), 5, 10, 10])
+  l.setAlign(child, {AlignBottom, AlignRight})
+
+  l.insertChild(root, child)
+
+  l.compute(root)
+
+  check l.computed(root) == [float32(0), 0, 100, 100]
+  check l.computed(child) == [float32(40), 40, 50, 50]

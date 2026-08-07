@@ -2,6 +2,7 @@ nimcache/
 nimblecache/
 htmldocs/
 
-buju.json
+crash/
 fuzz_corpus/
+
 tools/viewer/app.js

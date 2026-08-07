@@ -63,17 +63,17 @@ proc clear*(l: var RecordContext) {.inline, raises: [].} =
 
   l.buffer.setLen(0)
 
-proc firstChild*(l: RecordContext, nodeID: NodeID): NodeID {.inline, raises: [].} =
-  l.ctx.firstChild(nodeID)
+proc firstChild*(l: RecordContext, nodeId: NodeID): NodeID {.inline, raises: [].} =
+  l.ctx.firstChild(nodeId)
 
-proc lastChild*(l: RecordContext, nodeID: NodeID): NodeID {.inline, raises: [].} =
-  l.ctx.lastChild(nodeID)
+proc lastChild*(l: RecordContext, nodeId: NodeID): NodeID {.inline, raises: [].} =
+  l.ctx.lastChild(nodeId)
 
-proc nextSibling*(l: RecordContext, nodeID: NodeID): NodeID {.inline, raises: [].} =
-  l.ctx.nextSibling(nodeID)
+proc nextSibling*(l: RecordContext, nodeId: NodeID): NodeID {.inline, raises: [].} =
+  l.ctx.nextSibling(nodeId)
 
-iterator children*(l: RecordContext, nodeID: NodeID): NodeID {.inline, raises: [].} =
-  for n in l.ctx.children(nodeID):
+iterator children*(l: RecordContext, nodeId: NodeID): NodeID {.inline, raises: [].} =
+  for n in l.ctx.children(nodeId):
     yield n
 
 proc node*(l: var RecordContext): NodeID {.inline, raises: [].} =
@@ -81,124 +81,124 @@ proc node*(l: var RecordContext): NodeID {.inline, raises: [].} =
 
   l.ctx.node()
 
-proc setLayout*(l: var RecordContext, nodeID: NodeID, layout: Layout) {.inline,
+proc setLayout*(l: var RecordContext, nodeId: NodeID, layout: Layout) {.inline,
     raises: [].} =
   l.writeEnum(SET_LAYOUT)
-  l.writeInt32(int32(nodeID))
+  l.writeInt32(int32(nodeId))
   l.writeEnum(layout)
 
-  l.ctx.setLayout(nodeID, layout)
+  l.ctx.setLayout(nodeId, layout)
 
-proc setAlign*(l: var RecordContext, nodeID: NodeID, align: set[
+proc setAlign*(l: var RecordContext, nodeId: NodeID, align: set[
     Align]) {.inline, raises: [].} =
   l.writeEnum(SET_ALIGN)
-  l.writeInt32(int32(nodeID))
+  l.writeInt32(int32(nodeId))
   l.writeInt32(int32(align.len))
 
   for a in align:
     l.writeEnum(a)
 
-  l.ctx.setAlign(nodeID, align)
+  l.ctx.setAlign(nodeId, align)
 
-proc setMainAxisAlign*(l: var RecordContext, nodeID: NodeID,
+proc setMainAxisAlign*(l: var RecordContext, nodeId: NodeID,
     mainAxisAlign: MainAxisAlign) {.inline, raises: [].} =
   l.writeEnum(SET_MAIN_AXIS_ALIGN)
-  l.writeInt32(int32(nodeID))
+  l.writeInt32(int32(nodeId))
   l.writeEnum(mainAxisAlign)
 
-  l.ctx.setMainAxisAlign(nodeID, mainAxisAlign)
+  l.ctx.setMainAxisAlign(nodeId, mainAxisAlign)
 
-proc setCrossAxisAlign*(l: var RecordContext, nodeID: NodeID,
+proc setCrossAxisAlign*(l: var RecordContext, nodeId: NodeID,
     crossAxisAlign: CrossAxisAlign) {.inline, raises: [].} =
   l.writeEnum(SET_CROSS_AXIS_ALIGN)
-  l.writeInt32(int32(nodeID))
+  l.writeInt32(int32(nodeId))
   l.writeEnum(crossAxisAlign)
 
-  l.ctx.setCrossAxisAlign(nodeID, crossAxisAlign)
+  l.ctx.setCrossAxisAlign(nodeId, crossAxisAlign)
 
-proc setCrossAxisLineAlign*(l: var RecordContext, nodeID: NodeID,
+proc setCrossAxisLineAlign*(l: var RecordContext, nodeId: NodeID,
     crossAxisLineAlign: CrossAxisLineAlign) {.inline, raises: [].} =
   l.writeEnum(SET_CROSS_AXIS_LINE_ALIGN)
-  l.writeInt32(int32(nodeID))
+  l.writeInt32(int32(nodeId))
   l.writeEnum(crossAxisLineAlign)
 
-  l.ctx.setCrossAxisLineAlign(nodeID, crossAxisLineAlign)
+  l.ctx.setCrossAxisLineAlign(nodeId, crossAxisLineAlign)
 
-proc setWrap*(l: var RecordContext, nodeID: NodeID, wrap: Wrap) {.inline,
+proc setWrap*(l: var RecordContext, nodeId: NodeID, wrap: Wrap) {.inline,
     raises: [].} =
   l.writeEnum(SET_WRAP)
-  l.writeInt32(int32(nodeID))
+  l.writeInt32(int32(nodeId))
   l.writeEnum(wrap)
 
-  l.ctx.setWrap(nodeID, wrap)
+  l.ctx.setWrap(nodeId, wrap)
 
-proc setSize*(l: var RecordContext, nodeID: NodeID, size: array[2,
+proc setSize*(l: var RecordContext, nodeId: NodeID, size: array[2,
     float32]) {.inline, raises: [].} =
   l.writeEnum(SET_SIZE)
-  l.writeInt32(int32(nodeID))
+  l.writeInt32(int32(nodeId))
   for val in size:
     l.writeInt32(int32(val * 100))
 
-  l.ctx.setSize(nodeID, size)
+  l.ctx.setSize(nodeId, size)
 
-proc setGap*(l: var RecordContext, nodeID: NodeID, gap: array[2,
+proc setGap*(l: var RecordContext, nodeId: NodeID, gap: array[2,
     float32]) {.inline, raises: [].} =
   l.writeEnum(SET_GAP)
-  l.writeInt32(int32(nodeID))
+  l.writeInt32(int32(nodeId))
   for val in gap:
     l.writeInt32(int32(val * 100))
 
-  l.ctx.setGap(nodeID, gap)
+  l.ctx.setGap(nodeId, gap)
 
-proc setMargin*(l: var RecordContext, nodeID: NodeID, margin: array[4,
+proc setMargin*(l: var RecordContext, nodeId: NodeID, margin: array[4,
     float32]) {.inline, raises: [].} =
   l.writeEnum(SET_MARGIN)
-  l.writeInt32(int32(nodeID))
+  l.writeInt32(int32(nodeId))
   for val in margin:
     l.writeInt32(int32(val * 100))
 
-  l.ctx.setMargin(nodeID, margin)
+  l.ctx.setMargin(nodeId, margin)
 
-proc setPadding*(l: var RecordContext, nodeID: NodeID, padding: array[4,
+proc setPadding*(l: var RecordContext, nodeId: NodeID, padding: array[4,
     float32]) {.inline, raises: [].} =
   l.writeEnum(SET_PADDING)
-  l.writeInt32(int32(nodeID))
+  l.writeInt32(int32(nodeId))
   for val in padding:
     l.writeInt32(int32(val * 100))
 
-  l.ctx.setPadding(nodeID, padding)
+  l.ctx.setPadding(nodeId, padding)
 
-proc insertChild*(l: var RecordContext, parentID, childID: NodeID) {.inline,
+proc insertChild*(l: var RecordContext, parentId, childId: NodeID) {.inline,
     raises: [].} =
   l.writeEnum(INSERT_CHILD)
-  l.writeInt32(int32(parentID))
-  l.writeInt32(int32(childID))
+  l.writeInt32(int32(parentId))
+  l.writeInt32(int32(childId))
 
-  l.ctx.insertChild(parentID, childID)
+  l.ctx.insertChild(parentId, childId)
 
-proc removeChild*(l: var RecordContext, parentID, childID: NodeID) {.inline,
+proc removeChild*(l: var RecordContext, parentId, childId: NodeID) {.inline,
     raises: [].} =
   l.writeEnum(REMOVE_CHILD)
-  l.writeInt32(int32(parentID))
-  l.writeInt32(int32(childID))
+  l.writeInt32(int32(parentId))
+  l.writeInt32(int32(childId))
 
-  l.ctx.removeChild(parentID, childID)
+  l.ctx.removeChild(parentId, childId)
 
-proc compute*(l: var RecordContext, nodeID: NodeID) {.inline, raises: [].} =
+proc compute*(l: var RecordContext, nodeId: NodeID) {.inline, raises: [].} =
   l.writeEnum(COMPUTE)
-  l.writeInt32(int32(nodeID))
+  l.writeInt32(int32(nodeId))
 
-  l.ctx.compute(nodeID)
+  l.ctx.compute(nodeId)
 
-proc computed*(l: RecordContext, nodeID: NodeID): array[4, float32] {.inline,
+proc computed*(l: RecordContext, nodeId: NodeID): array[4, float32] {.inline,
     raises: [].} =
-  l.ctx.computed(nodeID)
+  l.ctx.computed(nodeId)
 
 when defined(bujuUserData):
-  proc setUserData*(l: var RecordContext, nodeID: NodeID,
+  proc setUserData*(l: var RecordContext, nodeId: NodeID,
       userData: RootRef) {.inline, raises: [].} =
-    l.ctx.setUserData(nodeID, userData)
+    l.ctx.setUserData(nodeId, userData)
 
-  proc userData*(l: var RecordContext, nodeID: NodeID): RootRef {.inline,
+  proc userData*(l: var RecordContext, nodeId: NodeID): RootRef {.inline,
       raises: [].} =
-    l.ctx.userData(nodeID)
+    l.ctx.userData(nodeId)

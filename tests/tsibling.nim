@@ -1,7 +1,6 @@
-import unittest
-
 import buju
 import buju/core
+import unittest
 
 template getAddr(body): auto =
   when NimMajor > 1: body.addr else: body.unsafeAddr

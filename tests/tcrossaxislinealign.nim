@@ -1,15 +1,17 @@
-import unittest
-
 import buju
-import ./utils
+import unittest
 
 import std/sugar
 
-template setup(crossAxisLineAlign: CrossAxisLineAlign): untyped =
+import ./utils
+
+# Golden geometry for every CrossAxisLineAlign mode. The assertions are the spec.
+
+template setup(layout: Layout, crossAxisLineAlign: CrossAxisLineAlign): untyped =
   let root = l.node()
   l.setSize(root, [float32(130), 130])
   l.setWrap(root, WrapWrap)
-  l.setLayout(root, LayoutRow)
+  l.setLayout(root, layout)
   l.setMainAxisAlign(root, MainAxisAlignMiddle)
   l.setCrossAxisAlign(root, CrossAxisAlignMiddle)
   l.setCrossAxisLineAlign(root, crossAxisLineAlign)
@@ -23,56 +25,112 @@ template setup(crossAxisLineAlign: CrossAxisLineAlign): untyped =
 
   l.compute(root)
 
-test2 "cross_axis_line_align_middle":
-  setup(CrossAxisLineAlignMiddle)
+test2 "cross_axis_line_align_middle_column":
+  setup(LayoutColumn, CrossAxisLineAlignMiddle)
+
+  check l.computed(nodes[0]) == [float32(15), 15, 50, 50]
+  check l.computed(nodes[1]) == [float32(15), 65, 50, 50]
+  check l.computed(nodes[2]) == [float32(65), 15, 50, 50]
+  check l.computed(nodes[3]) == [float32(65), 65, 50, 50]
+
+test2 "cross_axis_line_align_middle_row":
+  setup(LayoutRow, CrossAxisLineAlignMiddle)
 
   check l.computed(nodes[0]) == [float32(15), 15, 50, 50]
   check l.computed(nodes[1]) == [float32(65), 15, 50, 50]
   check l.computed(nodes[2]) == [float32(15), 65, 50, 50]
   check l.computed(nodes[3]) == [float32(65), 65, 50, 50]
 
-test2 "cross_axis_line_align_start":
-  setup(CrossAxisLineAlignStart)
+test2 "cross_axis_line_align_start_column":
+  setup(LayoutColumn, CrossAxisLineAlignStart)
+
+  check l.computed(nodes[0]) == [float32(0), 15, 50, 50]
+  check l.computed(nodes[1]) == [float32(0), 65, 50, 50]
+  check l.computed(nodes[2]) == [float32(50), 15, 50, 50]
+  check l.computed(nodes[3]) == [float32(50), 65, 50, 50]
+
+test2 "cross_axis_line_align_start_row":
+  setup(LayoutRow, CrossAxisLineAlignStart)
 
   check l.computed(nodes[0]) == [float32(15), 0, 50, 50]
   check l.computed(nodes[1]) == [float32(65), 0, 50, 50]
   check l.computed(nodes[2]) == [float32(15), 50, 50, 50]
   check l.computed(nodes[3]) == [float32(65), 50, 50, 50]
 
-test2 "cross_axis_line_align_end":
-  setup(CrossAxisLineAlignEnd)
+test2 "cross_axis_line_align_end_column":
+  setup(LayoutColumn, CrossAxisLineAlignEnd)
+
+  check l.computed(nodes[0]) == [float32(30), 15, 50, 50]
+  check l.computed(nodes[1]) == [float32(30), 65, 50, 50]
+  check l.computed(nodes[2]) == [float32(80), 15, 50, 50]
+  check l.computed(nodes[3]) == [float32(80), 65, 50, 50]
+
+test2 "cross_axis_line_align_end_row":
+  setup(LayoutRow, CrossAxisLineAlignEnd)
 
   check l.computed(nodes[0]) == [float32(15), 30, 50, 50]
   check l.computed(nodes[1]) == [float32(65), 30, 50, 50]
   check l.computed(nodes[2]) == [float32(15), 80, 50, 50]
   check l.computed(nodes[3]) == [float32(65), 80, 50, 50]
 
-test2 "cross_axis_line_align_stretch":
-  setup(CrossAxisLineAlignStretch)
+test2 "cross_axis_line_align_stretch_column":
+  setup(LayoutColumn, CrossAxisLineAlignStretch)
+
+  check l.computed(nodes[0]) == [float32(7.5), 15, 50, 50]
+  check l.computed(nodes[1]) == [float32(7.5), 65, 50, 50]
+  check l.computed(nodes[2]) == [float32(72.5), 15, 50, 50]
+  check l.computed(nodes[3]) == [float32(72.5), 65, 50, 50]
+
+test2 "cross_axis_line_align_stretch_row":
+  setup(LayoutRow, CrossAxisLineAlignStretch)
 
   check l.computed(nodes[0]) == [float32(15), 7.5, 50, 50]
   check l.computed(nodes[1]) == [float32(65), 7.5, 50, 50]
   check l.computed(nodes[2]) == [float32(15), 72.5, 50, 50]
   check l.computed(nodes[3]) == [float32(65), 72.5, 50, 50]
 
-test2 "cross_axis_line_align_space_between":
-  setup(CrossAxisLineAlignSpaceBetween)
+test2 "cross_axis_line_align_space_between_column":
+  setup(LayoutColumn, CrossAxisLineAlignSpaceBetween)
+
+  check l.computed(nodes[0]) == [float32(0), 15, 50, 50]
+  check l.computed(nodes[1]) == [float32(0), 65, 50, 50]
+  check l.computed(nodes[2]) == [float32(80), 15, 50, 50]
+  check l.computed(nodes[3]) == [float32(80), 65, 50, 50]
+
+test2 "cross_axis_line_align_space_between_row":
+  setup(LayoutRow, CrossAxisLineAlignSpaceBetween)
 
   check l.computed(nodes[0]) == [float32(15), 0, 50, 50]
   check l.computed(nodes[1]) == [float32(65), 0, 50, 50]
   check l.computed(nodes[2]) == [float32(15), 80, 50, 50]
   check l.computed(nodes[3]) == [float32(65), 80, 50, 50]
 
-test2 "cross_axis_line_align_space_around":
-  setup(CrossAxisLineAlignSpaceAround)
+test2 "cross_axis_line_align_space_around_column":
+  setup(LayoutColumn, CrossAxisLineAlignSpaceAround)
+
+  check l.computed(nodes[0]) == [float32(7.5), 15, 50, 50]
+  check l.computed(nodes[1]) == [float32(7.5), 65, 50, 50]
+  check l.computed(nodes[2]) == [float32(72.5), 15, 50, 50]
+  check l.computed(nodes[3]) == [float32(72.5), 65, 50, 50]
+
+test2 "cross_axis_line_align_space_around_row":
+  setup(LayoutRow, CrossAxisLineAlignSpaceAround)
 
   check l.computed(nodes[0]) == [float32(15), 7.5, 50, 50]
   check l.computed(nodes[1]) == [float32(65), 7.5, 50, 50]
   check l.computed(nodes[2]) == [float32(15), 72.5, 50, 50]
   check l.computed(nodes[3]) == [float32(65), 72.5, 50, 50]
 
-test2 "cross_axis_line_align_space_evenly":
-  setup(CrossAxisLineAlignSpaceEvenly)
+test2 "cross_axis_line_align_space_evenly_column":
+  setup(LayoutColumn, CrossAxisLineAlignSpaceEvenly)
+
+  check l.computed(nodes[0]) == [float32(10), 15, 50, 50]
+  check l.computed(nodes[1]) == [float32(10), 65, 50, 50]
+  check l.computed(nodes[2]) == [float32(70), 15, 50, 50]
+  check l.computed(nodes[3]) == [float32(70), 65, 50, 50]
+
+test2 "cross_axis_line_align_space_evenly_row":
+  setup(LayoutRow, CrossAxisLineAlignSpaceEvenly)
 
   check l.computed(nodes[0]) == [float32(15), 10, 50, 50]
   check l.computed(nodes[1]) == [float32(65), 10, 50, 50]

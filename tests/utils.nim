@@ -1,10 +1,10 @@
 import buju
 
 template test2*(name: static[string], body: untyped) =
-  when defined(bujuDumpRecord):
+  when defined(bujuDumpRecord) and not declared(record):
     import ./record
 
-  when defined(bujuDumpJson):
+  when defined(bujuDumpJson) and not declared(dumps):
     import buju/dumps
 
   test name:

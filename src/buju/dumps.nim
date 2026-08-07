@@ -22,47 +22,48 @@ type
 
   NodeItem = object
     id: int32
-    parentID: int32
+    parentId: int32
     attr: NodeAttr
 
 proc `%`(align: set[Align]): JsonNode =
   result = newJArray()
-  for a in [AlignLeft, AlignTop, AlignRight, AlignBottom]:
+  for a in [AlignMiddle, AlignLeft, AlignTop, AlignRight, AlignBottom]:
     if a in align:
       result.add(%a)
 
-proc initFromJson(dst: var set[Align], jsonNode: JsonNode,
-    jsonPath: var string) =
+proc initFromJson(dst: var set[Align], jsonNode: JsonNode, jsonPath: var string) =
   for j in jsonNode:
     dst.incl(j.to(Align))
 
-proc dump(l: ptr Context, id, parentID: NodeID, nodes: var seq[NodeItem]) =
+proc dump(l: ptr Context, id, parentId: NodeID, nodes: var seq[NodeItem]) =
   let n = l.node(id)
 
   block:
-    nodes.add(NodeItem(
-      id: int32(id),
-      parentID: int32(parentID),
-      attr: NodeAttr(
-        layout: n.layout,
-        wrap: n.wrap,
-        mainAxisAlign: n.mainAxisAlign,
-        crossAxisAlign: n.crossAxisAlign,
-        crossAxisLineAlign: n.crossAxisLineAlign,
-        align: n.align,
-        size: n.size,
-        gap: n.gap,
-        margin: n.margin,
-        padding: n.padding,
+    nodes.add(
+      NodeItem(
+        id: int32(id),
+        parentId: int32(parentId),
+        attr: NodeAttr(
+          layout: n.layout,
+          wrap: n.wrap,
+          mainAxisAlign: n.mainAxisAlign,
+          crossAxisAlign: n.crossAxisAlign,
+          crossAxisLineAlign: n.crossAxisLineAlign,
+          align: n.align,
+          size: n.size,
+          gap: n.gap,
+          margin: n.margin,
+          padding: n.padding,
+        ),
       )
-    ))
+    )
 
-  var childID = n.firstChild
-  while not childID.isNil:
-    l.dump(childID, id, nodes)
+  var childId = n.firstChild
+  while not childId.isNil:
+    l.dump(childId, id, nodes)
 
-    let child = l.node(childID)
-    childID = child.nextSibling
+    let child = l.node(childId)
+    childId = child.nextSibling
 
 proc dumpJson*(l: Context, id: NodeID): string =
   let l = l.getAddr
@@ -79,7 +80,7 @@ proc loadJson*(l: var Context, json: string): NodeID =
   for j in nodes:
     let
       id = j["id"].getInt()
-      parentID = j["parentID"].getInt()
+      parentId = j["parentId"].getInt()
       attr = j["attr"].to(NodeAttr)
 
     let n = l.node()
@@ -94,9 +95,9 @@ proc loadJson*(l: var Context, json: string): NodeID =
     l.setMargin(n, attr.margin)
     l.setPadding(n, attr.padding)
 
-    if len(mapping) <= 0:
+    if result.isNil:
       result = n
 
     mapping[int32(id)] = int32(n)
-    mapping.withValue(int32(parentID), p):
+    mapping.withValue(int32(parentId), p):
       l.insertChild(cast[NodeID](p[]), n)

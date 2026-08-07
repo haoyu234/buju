@@ -1,7 +1,9 @@
+import buju
 import unittest
 
-import buju
 import ./utils
+
+# Golden geometry for row/column wrap grids. The assertions are the spec.
 
 test2 "wrap_row_1":
   let root = l.node()
@@ -20,6 +22,8 @@ test2 "wrap_row_1":
 
   l.compute(root)
 
+  check l.computed(root) == [float32(0), 0, 50, 50]
+
   for i in 0 ..< numItems:
     let x = i mod 5
     let y = i div 5
@@ -32,7 +36,6 @@ test2 "wrap_row_2":
   l.setWrap(root, WrapWrap)
   l.setMainAxisAlign(root, MainAxisAlignStart)
 
-  # Before `setXxx` was available, these were "hardcoded" default values.
   l.setCrossAxisLineAlign(root, CrossAxisLineAlignStart)
   l.setCrossAxisAlign(root, CrossAxisAlignStart)
 
@@ -46,6 +49,8 @@ test2 "wrap_row_2":
     items[i] = node
 
   l.compute(root)
+
+  check l.computed(root) == [float32(0), 0, 57, 57]
 
   for i in 0 ..< numItems:
     let x = i mod 5
@@ -73,6 +78,8 @@ test2 "wrap_row_3":
 
   l.compute(root)
 
+  check l.computed(root) == [float32(0), 0, 57, 57]
+
   for i in 0 ..< numItems:
     let x = i mod 5
     let y = i div 5
@@ -99,6 +106,9 @@ test2 "wrap_row_4":
 
   l.compute(root)
 
+  check l.computed(root) == [float32(0), 0, 58, 57]
+  check l.computed(spacer) == [float32(0), 0, 58, 7]
+
   for i in 0 ..< numItems:
     let x = i mod 5
     let y = i div 5
@@ -122,6 +132,8 @@ test2 "wrap_row_5":
 
   l.compute(root)
 
+  check l.computed(root) == [float32(0), 0, 54, 50]
+
   for i in 0 ..< numItems:
     let x = i mod 5
     let y = i div 5
@@ -143,6 +155,8 @@ test2 "wrap_column_1":
     items[i] = node
 
   l.compute(root)
+
+  check l.computed(root) == [float32(0), 0, 50, 50]
 
   for i in 0 ..< numItems:
     let x = i div 5
@@ -170,6 +184,8 @@ test2 "wrap_column_2":
 
   l.compute(root)
 
+  check l.computed(root) == [float32(0), 0, 57, 57]
+
   for i in 0 ..< numItems:
     let x = i div 5
     let y = i mod 5
@@ -195,6 +211,8 @@ test2 "wrap_column_3":
     items[i] = node
 
   l.compute(root)
+
+  check l.computed(root) == [float32(0), 0, 57, 57]
 
   for i in 0 ..< numItems:
     let x = i div 5
@@ -225,37 +243,10 @@ test2 "wrap_column_4":
 
   l.compute(root)
 
+  check l.computed(root) == [float32(0), 0, 57, 58]
+  check l.computed(spacer) == [float32(0), 0, 7, 58]
+
   for i in 0 ..< numItems:
     let x = i div 5
     let y = i mod 5
     check l.computed(items[i]) == [float32(7 + x * 10), float32(4 + y * 10), 10, 10]
-
-test2 "anchor_right_margin1":
-  let root = l.node()
-  l.setSize(root, [float32(100), 100])
-
-  let child = l.node()
-  l.setSize(child, [float32(50), 50])
-  l.setMargin(child, [float32(5), 5, 0, 0])
-  l.setAlign(child, {AlignBottom, AlignRight})
-
-  l.insertChild(root, child)
-
-  l.compute(root)
-
-  check l.computed(child) == [float32(50), 50, 50, 50]
-
-test2 "anchor_right_margin2":
-  let root = l.node()
-  l.setSize(root, [float32(100), 100])
-
-  let child = l.node()
-  l.setSize(child, [float32(50), 50])
-  l.setMargin(child, [float32(5), 5, 10, 10])
-  l.setAlign(child, {AlignBottom, AlignRight})
-
-  l.insertChild(root, child)
-
-  l.compute(root)
-
-  check l.computed(child) == [float32(40), 40, 50, 50]
