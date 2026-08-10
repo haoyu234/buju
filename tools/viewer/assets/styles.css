@@ -1,12 +1,476 @@
+:root {
+  --background-color: #f4f5f7;
+  --panel: #ffffff;
+  --ink: #1f2329;
+  --muted: #8b929c;
+  --line: #ececf0;
+  --accent: #16a34a;
+  --accent-soft: #e9f7ee;
+  --hover: #f3f4f6;
+  --shadow: 0 10px 34px rgba(20, 25, 40, 0.12);
+  --node-fill: #ffffff;
+  --node-border: #4a4a4a;
+  --label-fill: rgba(0, 0, 0, 0.05);
+  --label-ink: #1f2329;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink);
+  background: var(--panel);
+}
+
+ul,
 li {
   list-style: none;
-  white-space: nowrap
+  margin: 0;
+  padding: 0;
 }
 
-td {
-  vertical-align: top;
+label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 1px 0;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
+input[type="number"] {
+  width: 4.5em;
+  font: inherit;
+  padding: 4px 6px;
+  border: 1px solid #d8dce3;
+  background: #fff;
+  color: var(--ink);
+  -moz-appearance: textfield;
+  appearance: textfield;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"]:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--panel);
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background: var(--panel);
+}
+
+.tree-panel {
+  flex: 0 0 320px;
+  min-width: 320px;
+  border-right: 1px solid var(--line);
+}
+
+.inspector-panel {
+  width: 320px;
+  flex: 0 0 320px;
+  max-width: 320px;
+  min-width: 320px;
+  overflow-x: hidden;
+  border-left: 1px solid var(--line);
+}
+
+.stage {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 1px;
+  overflow: hidden;
+  background-color: var(--background-color);
+  background-image: radial-gradient(circle, #e1e4e9 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.viewer {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.viewer-title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 12px;
+  background: #fafbfc;
+  border-bottom: 1px solid var(--line);
+}
+
+.viewer-title-text {
+  font-weight: 600;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.viewer-title-info {
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.viewer-viewport {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  background-color: var(--background-color);
+  /* Prevent text selection while dragging the canvas. We intentionally do
+     NOT call preventDefault() on the viewport mousedown (see
+     makeViewportDragHandler) so that a focused inspector input can blur
+     natively when the user clicks the canvas. */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.viewer-viewport:active {
+  cursor: grabbing;
+}
+
+.viewport-world {
+  position: relative;
+}
+
+/* ===== drag overlays (typed Karax, no emit) =====
+   A transparent layer shown only while a node is dragged or the canvas is
+   being panned. It captures the pointer so the move/up handlers stay ordinary typed
+   Karax event procs. */
+.drag-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  cursor: move;
+}
+
+.drag-overlay.hidden {
+  display: none;
+  pointer-events: none;
+}
+
+.drag-overlay.is-dragging {
+  cursor: grabbing;
+}
+
+.toolbar {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.tool {
+  margin: 0;
+  padding: 5px 11px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.tool:hover {
+  background: var(--hover);
+  border-color: #dcdfe4;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.toggle input {
+  accent-color: var(--accent);
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+/* Anchor: the two stretch toggles (Horizontal / Vertical) stack vertically
+   beside the 3x3 picker, each carrying its own direction glyph (↔ / ↕). The
+   toggles grow to fill the column height (matched to the picker by the parent
+   `.anchor-row`'s align-items: stretch) so the row stays top/bottom aligned. */
+.axis-stretch {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  justify-content: flex-start;
+}
+
+.axis-stretch .toggle {
+  flex: 1;
+}
+
+.separator {
+  width: 1px;
+  height: 18px;
+  background: var(--line);
+  margin: 0 3px;
+}
+
+.panel-title {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 12px 12px 6px;
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  z-index: 5;
+}
+
+.tree {
+  padding-bottom: 12px;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.tree-row {
+  display: flex;
+  align-items: stretch;
+  min-height: 22px;
+}
+
+.caret {
+  flex: 0 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 10px;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.caret:hover {
+  color: var(--accent);
+}
+
+.caret.empty {
+  cursor: default;
+  visibility: hidden;
+}
+
+.tree-node {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  padding: 3px 9px;
+  margin: 1px 7px 1px 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: grab;
+  font-variant-numeric: tabular-nums;
+  color: #424a52;
+}
+
+.tree-node:hover {
+  background: var(--hover);
+}
+
+.tree-node.focus {
+  background: var(--accent-soft);
+  color: #13632e;
+  font-weight: 600;
+}
+
+.tree-node.sel {
+  background: #e7f1ea;
+  color: #2f7a47;
+}
+
+.tree-node.dragging {
+  opacity: 0.4;
+}
+
+.tree-node.dropover {
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
+  background: var(--accent-soft);
+}
+
+.tree-id {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.tree-name {
+  flex: 0 0 auto;
+  margin-left: 7px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tree-child-count {
+  flex: 0 0 auto;
+  margin-left: 6px;
+  min-width: 16px;
+  text-align: center;
+  padding: 0 5px;
+  font-size: 10px;
+  line-height: 15px;
+  color: var(--muted);
+  background: #eef0f3;
+}
+
+.inspector {
+  display: block;
+  padding-bottom: 8px;
+}
+
+.group {
+  margin: 6px 10px 0;
+  padding: 8px 10px 10px;
+  background: #fafbfc;
+  border: 1px solid var(--line);
+}
+
+.group > .title {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--ink);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+/* current-node readout in the toolbar (right-aligned via margin-left:auto) */
+.toolbar-info {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.computed-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin: 0 12px;
+}
+
+.computed-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3px 0;
+  background: #fafbfc;
+}
+
+.computed-key {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.computed-value {
+  font-size: 12px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.viewer-buju {
+  position: relative;
+}
+
+.viewer-html5 {
+  position: relative;
+  display: flex;
+}
+
+/* A node box, shared by BOTH the Buju (absolute) and Html5 (flex) renderers.
+   Border + number live on THIS one element (no fill, so nodes are transparent
+   wireframes), so the two sides can never drift apart — there is no separate
+   border / number layer to misalign. Zoom and drag are applied entirely in Nim
+   (every node length is pre-multiplied by `zoom` before it reaches the DOM), so
+   there is NO CSS `transform: scale`. The outline and number are therefore just
+   plain fixed pixels: a constant 1px outline and 11px number at ANY zoom level,
+   identical for Buju and Html5. The outline (not a border) is deliberate: an
+   `outline` takes NO layout space and is NOT part of `getBoundingClientRect`,
+   so it never shifts the box nor leaks into the Buju-vs-Html5 comparison
+   measurement — a `border` would have added 1px per nesting level. */
 .node {
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -14,108 +478,343 @@ td {
   user-select: none;
   box-sizing: border-box;
   overflow: visible;
+  outline: 1px solid var(--node-border);
 }
 
-.label {
-  position: absolute;
-  top: 0px;
-  left: 0px;
+.node.focus {
+  outline-color: var(--accent);
+  box-shadow: 0 0 10px rgba(22, 163, 74, 0.5);
 }
 
-.node::before {
-  overflow: visible;
-  content: "";
+/* Node number, drawn on the node itself (single layer) at the top-left. A very
+   high z-index keeps it above the node's own outline so it is never hidden by
+   the box edge. With nodes transparent (no fill) and children laid out
+   inset by padding, the number at the top-left is always visible. */
+.node-label {
   position: absolute;
   top: 0;
   left: 0;
+  font-size: 11px;
+  line-height: 1;
+  padding: 0 2px;
+  white-space: nowrap;
+  background: var(--label-fill);
+  color: var(--label-ink);
+  pointer-events: none;
+  z-index: 2147483640;
+}
+
+.node-label.focus {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Absolutely-positioned node (Buju renderer): placed by explicit left/top in
+   the world coordinate space. */
+.node.is-absolute {
+  position: absolute;
+}
+
+/* Flex-laid-out node (Html5 renderer): a flex child that also establishes a
+   positioned context so its number can anchor to its own top-left. */
+.flex-node {
+  position: relative;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+
+/* Every alignment / layout diagram reuses ONE drawn language: a white box
+   (.glyph) filled with green blocks (.glyph-block), arranged by flex. Row =
+   blocks in a row; Column = blocks stacked; Free = blocks scattered. This keeps
+   Layout / Main-Axis / Cross-Axis visually consistent instead of separate
+   gray-bar glyph families. */
+
+/* wrap glyph: the frame is the full 62px box (.control-icon .glyph), matching
+   every other glyph; a narrowed inner flow makes three blocks wrap onto two
+   lines (2 + 1) so it reads as content flowing / wrapping. */
+.glyph.glyph-wrap .wrap-flow {
+  width: 44px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: center;
+  gap: 3px;
+}
+
+.glyph.glyph-wrap .glyph-block {
+  width: 18px;
+  height: 4px;
+}
+
+.glyph.glyph-free {
+  position: relative;
+}
+
+.glyph.glyph-free .glyph-block {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+}
+
+.glyph.glyph-free .glyph-block:nth-child(1) { top: 3px;  left: 3px; }
+.glyph.glyph-free .glyph-block:nth-child(2) { top: 14px; left: 30px; }
+.glyph.glyph-free .glyph-block:nth-child(3) { top: 28px; left: 16px; }
+
+/* 3x3 anchor picker (Free layout) */
+.anchor-picker {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  width: 104px;
+}
+
+.anchor-picker .cell {
+  aspect-ratio: 1 / 1;
+  border: 1px solid var(--line);
+  background: #fff;
+  cursor: pointer;
+  position: relative;
+}
+
+.anchor-picker .cell::after {
+  content: "";
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #c2c8cf;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.anchor-picker .cell:hover {
+  border-color: var(--accent);
+}
+
+.anchor-picker .cell.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.anchor-picker .cell.on::after {
+  background: var(--accent);
+}
+
+/* Anchor: 3x3 picker and the two stretch toggles sit side by side. Stretch
+   makes the toggle column match the picker's height so both top and bottom
+   edges line up (no new component; pure alignment on the row). */
+.anchor-row {
+  display: flex;
+  gap: 14px;
+  align-items: stretch;
+  margin-top: 6px;
+}
+
+/* stretch diagrams reuse the white-box .glyph frame: a single bar fills the
+   frame along the stretch axis, so ↔ reads as horizontal fill, ↕ as vertical. */
+.glyph.stretch-h .glyph-block {
+  width: 100%;
+  height: 4px;
+}
+
+.glyph.stretch-v .glyph-block {
+  width: 4px;
+  height: 100%;
+}
+
+/* enum list: each option is a row of [checkbox] [icon] [name]. */
+.option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 5px;
+}
+
+.option-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 8px;
+  border: 1px solid #e2e5ea;
+  background: #fff;
+  cursor: pointer;
+  font-size: 11.5px;
+  color: var(--ink);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.option-row:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.option-row.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.option-row input[type="checkbox"] {
+  accent-color: var(--accent);
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.control-icon {
+  flex: 0 0 auto;
+  width: 62px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The icon is a small framed "container" (the border) with solid accent
+   blocks inside it, positioned to mirror the alignment it represents. The
+   frame + darker blocks make the effect legible at a glance. */
+.control-icon .glyph {
   width: 100%;
   height: 100%;
-  border: 1px solid black;
+  border: 1.5px solid #8a929c;
+  background: #f8f9fb;
+  padding: 5px;
+  gap: 3px;
 }
 
-.focus.node::before {
-  border: 1px solid #008000;
-  box-shadow:
-    0px 0px 10px #008000;
+.option-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.title {
-  margin-right: 1em;
-  margin-bottom: 4px;
-  padding-bottom: 4px;
-  display: inline-block;
-  border-bottom: 1px solid rgb(155, 155, 155);
-}
-
-.app {
+/* the small flex-preview icon shared by the alignment rows.
+   Every block uses ONE fixed size: thickness 4px, length 20px. The only
+   difference between axes is orientation (vertical bar vs horizontal bar),
+   so there is no numeric variation across the alignment types — including
+   the Line Align bars, which share the same 4px thickness. */
+.glyph {
   display: flex;
-  flex-direction: row;
-  position: relative;
-  font-size: 16px;
-  font-family: Consolas, "Bitstream Vera Sans Mono", "Andale Mono", Monaco, "DejaVu Sans Mono", "Lucida Console", monospace;
+  min-width: 0;
+  background: #ffffff;
+  justify-content: center;
+  align-items: center;
 }
 
-.editor {
-  width: 24em;
-  z-index: 2;
-  position: fixed;
+/* Flex utility classes — the alignment preview icons are styled entirely
+   from these (no inline style). They mirror the flex properties the engine
+   produces so the glyph matches real layout. */
+.glyph.fd-column { flex-direction: column; }
+.glyph.fd-row { flex-direction: row; }
+.glyph.fw-wrap { flex-wrap: wrap; }
+
+.glyph.jc-start { justify-content: flex-start; }
+.glyph.jc-center { justify-content: center; }
+.glyph.jc-end { justify-content: flex-end; }
+.glyph.jc-between { justify-content: space-between; }
+.glyph.jc-around { justify-content: space-around; }
+.glyph.jc-evenly { justify-content: space-evenly; }
+
+.glyph.ai-start { align-items: flex-start; }
+.glyph.ai-center { align-items: center; }
+.glyph.ai-end { align-items: flex-end; }
+.glyph.ai-stretch { align-items: stretch; }
+
+.glyph.ac-start { align-content: flex-start; }
+.glyph.ac-center { align-content: center; }
+.glyph.ac-end { align-content: flex-end; }
+.glyph.ac-stretch { align-content: stretch; }
+.glyph.ac-between { align-content: space-between; }
+.glyph.ac-around { align-content: space-around; }
+.glyph.ac-evenly { align-content: space-evenly; }
+
+.glyph .glyph-block {
+  width: 4px;
+  height: 20px;
+  background: var(--accent);
+  flex: 0 0 auto;
 }
 
-.viewer {
+/* cross axis: the main-axis vertical bar rotated to a horizontal bar, stacked
+   in a column and distributed by justify-content (Start/Middle/End = top /
+   centred / bottom). */
+.control-icon .glyph.cross-axis .glyph-block {
+  width: 20px;
+  height: 4px;
+}
+
+/* cross stretch: bars grow to fill the column's vertical space (flex:1 1 0 on
+   the main axis); the fixed 20px width stays centred via align-self:center. */
+.control-icon .glyph.cross-axis.stretch .glyph-block {
+  height: auto;
+  flex: 1 1 0;
+  align-self: center;
+}
+
+/* line align (wrap): three 13×4 bars stacked vertically (column), their
+   vertical spread driven by justify-content so the alignContent values read
+   clearly. Bar LENGTH matches the other axis icons (20px); stretch swaps
+   align-items to stretch so the bars grow across the width instead. */
+.glyph.line-align .glyph-block {
+  width: 20px;
+  height: 4px;
+  flex: 0 0 auto;
+}
+
+/* stretch: align-content:stretch makes the wrapped lines grow to fill the
+   vertical space, so the thin bars become three thick blocks. flex:1 1 0 on
+   the main (vertical) axis fills the container; the fixed 20px width keeps
+   the length consistent with the other axis icons. align-self:center keeps
+   the bars horizontally centered (the container's align-items:stretch would
+   otherwise pin the fixed-width bars to the left). */
+.glyph.line-align.stretch .glyph-block {
+  height: auto;
+  flex: 1 1 0;
+  align-self: center;
+}
+
+/* Used by Size · Gap, Margin and Padding so they share one compact look. */
+.field-grid {
   display: flex;
-  position: relative;
-  box-sizing: border-box;
-  padding: 4em;
-  z-index: 1;
+  gap: 5px;
+  margin-top: 0;
 }
 
-.viewers {
+.field {
   display: flex;
-  margin-left: 18em;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
 }
 
-.toolbar {
-  z-index: 2;
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 24em;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
+.field-label {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  line-height: 1;
+  font-weight: 500;
 }
 
-.tool {
-  margin: 4px;
-  padding: 0px 0.5em;
-  box-sizing: border-box;
+.field-input {
+  width: 100%;
+  min-width: 0;
+  font-size: 12px;
+  text-align: center;
+  padding: 5px 2px;
+  border: 1px solid #d8dce3;
+  background: #fff;
+  color: var(--ink);
+  -moz-appearance: textfield;
+  appearance: textfield;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.focus {
-  box-shadow:
-    0px 0px 10px #008000;
-}
-
-.tools {
-  display: flex;
-  justify-content: flex-end;
-  max-width: 24em;
-  flex-wrap: wrap;
-  margin-bottom: 4px;
-  pointer-events: none;
-}
-
-.tools > * {
-  pointer-events: auto;
-}
-
-.button {
-  margin-right: 4px;
-}
-
-.buttons {
-  position: fixed;
-  max-width: 24em;
-  right: 0;
+.field-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }

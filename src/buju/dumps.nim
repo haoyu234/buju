@@ -1,5 +1,4 @@
 import std/json
-import std/tables
 
 import ./core
 import ../buju
@@ -71,19 +70,34 @@ proc dumpJson*(l: Context, id: NodeID): string =
   var nodes = newSeqOfCap[NodeItem](l.nodes.len)
   if id != NIL:
     l.dump(id, NIL, nodes)
+
   pretty(%*nodes)
 
 proc loadJson*(l: var Context, json: string): NodeID =
-  let nodes = parseJson(json)
+  let
+    nodes = parseJson(json)
+    base = int32(l.nodes.len)
 
-  var mapping = initTable[int32, int32]()
+  var
+    maxId = int32(0)
+  for j in nodes:
+    maxId = max(maxId, int32(j["id"].getInt()))
+
+  for _ in 0 ..< maxId:
+    discard l.node()
+
   for j in nodes:
     let
-      id = j["id"].getInt()
-      parentId = j["parentId"].getInt()
+      id = int32(j["id"].getInt())
+      parentId = int32(j["parentId"].getInt())
+
+    if id <= 0 or id > maxId:
+      continue
+
+    let
       attr = j["attr"].to(NodeAttr)
 
-    let n = l.node()
+    let n = cast[NodeID](base + id)
     l.setLayout(n, attr.layout)
     l.setMainAxisAlign(n, attr.mainAxisAlign)
     l.setCrossAxisAlign(n, attr.crossAxisAlign)
@@ -98,6 +112,5 @@ proc loadJson*(l: var Context, json: string): NodeID =
     if result.isNil:
       result = n
 
-    mapping[int32(id)] = int32(n)
-    mapping.withValue(int32(parentId), p):
-      l.insertChild(cast[NodeID](p[]), n)
+    if parentId > 0 and parentId <= maxId:
+      l.insertChild(cast[NodeID](base + parentId), n)
